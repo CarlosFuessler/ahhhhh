@@ -339,7 +339,18 @@ static InterpretResult run(VM *vm) {
 #define READ_BYTE() (*frame->ip++)
 #define READ_SHORT() (frame->ip += 2, (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1]))
 
-#ifdef __GNUC__
+// Toggle to enable/disable Computed Gotos.
+// 
+// NOTE: On modern Apple Silicon (ARM64) and Clang 15+, the compiler's native 
+// switch-case jump-table optimizer is extremely advanced. A single centralized 
+// switch branch is predicted significantly better by the hardware's Branch Target 
+// Buffer (BTB) than the 45+ separate indirect jumps created by computed gotos.
+// On M-series CPUs, the standard switch loop is therefore faster in practice.
+// 
+// Uncomment the line below to enable Computed Gotos:
+// #define AHHHHH_USE_COMPUTED_GOTOS
+
+#if defined(__GNUC__) && defined(AHHHHH_USE_COMPUTED_GOTOS)
     static void* dispatch_table[] = {
         &&LABEL_OP_CONSTANT,
         &&LABEL_OP_NULL,
@@ -401,7 +412,7 @@ static InterpretResult run(VM *vm) {
     #define BREAK_CODE() break
 #endif
     
-#ifdef __GNUC__
+#if defined(__GNUC__) && defined(AHHHHH_USE_COMPUTED_GOTOS)
     DISPATCH();
 #else
     for (;;) {
@@ -758,7 +769,7 @@ static InterpretResult run(VM *vm) {
                 BREAK_CODE();
             }
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && defined(AHHHHH_USE_COMPUTED_GOTOS)
         LABEL_OP_LOAD_GLOBAL:
         LABEL_OP_CLOSE_UPVALUE:
         LABEL_OP_ARRAY_GET:
@@ -771,7 +782,7 @@ static InterpretResult run(VM *vm) {
             return INTERPRET_RUNTIME_ERROR;
 #endif
 
-#ifndef __GNUC__
+#if !defined(__GNUC__) || !defined(AHHHHH_USE_COMPUTED_GOTOS)
             default:
                 fprintf(stderr, "Unknown opcode %d\n", opcode);
                 return INTERPRET_RUNTIME_ERROR;
