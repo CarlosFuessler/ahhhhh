@@ -1,0 +1,30 @@
+@(test_functions.ahhhh)
+
+fn main() {
+    log("--- Testing Standard Library Functions ---", .cyan)
+    print("sqrt(16) = ", sqrt(16))
+    print("abs(-42) = ", abs(-42))
+    print("pow(2, 10) = ", pow(2, 10))
+    print("ln(exp(1)) = ", ln(exp(1)))
+    
+    log("\n--- Testing Included Functions ---", .yellow)
+    greet("Gemini")
+    
+    var n: f64 = 5
+    print("factorial(", n, ") = ", factorial(n), .magenta)
+    
+    var x: f64 = 10
+    if is_even(x) {
+        print(x, " is even", .green)
+    } else {
+        print(x, " is odd", .red)
+    }
+    
+    log("\n--- Testing Array and Loops ---", .blue)
+    var arr: []f64 = [1.0, 2.0, 3.0, 4.0, 5.0]
+    var sum: f64 = 0
+    for i in 0..arr.len {
+        sum = sum + arr[i]
+    }
+    print("Sum of ", arr, " is ", sum, .white)
+}

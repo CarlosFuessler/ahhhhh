@@ -1,0 +1,76 @@
+fn evaluate_right(val: bool) bool {
+    print("  -> (Right operand evaluated!)")
+    return val
+}
+
+fn main() {
+    log("=== Testing Logical Operators and Short-circuiting ===", .cyan)
+    
+    var result: bool = false
+    
+    print("Testing: false and evaluate_right(true)")
+    result = false and evaluate_right(true)
+    print("Result: ", result)
+    
+    print("Testing: true and evaluate_right(true)")
+    result = true and evaluate_right(true)
+    print("Result: ", result)
+    
+    print("Testing: true or evaluate_right(true)")
+    result = true or evaluate_right(true)
+    print("Result: ", result)
+    
+    print("Testing: false or evaluate_right(false)")
+    result = false or evaluate_right(false)
+    print("Result: ", result)
+
+    log("\n=== Testing Randomness ===", .yellow)
+    var r: f64 = rand()
+    print("rand(): ", r)
+    var rr: f64 = rand_range(10, 20)
+    print("rand_range(10, 20): ", rr)
+
+    log("\n=== Testing String Utilities ===", .magenta)
+    var s: string = "hello world"
+    print("s = ", s)
+    print("strlen(s) = ", strlen(s))
+    print("substr(s, 0, 5) = ", substr(s, 0, 5))
+    print("substr(s, 6, 5) = ", substr(s, 6, 5))
+    print("char_at(s, 6) = ", char_at(s, 6))
+    
+    var num_str: string = to_string(123.456)
+    print("to_string(123.456) = ", num_str)
+    print("to_number(\"987.654\") = ", to_number("987.654"))
+
+    log("\n=== Testing Array Utilities ===", .green)
+    var arr: []f64 = [10, 20, 30]
+    print("Initial array: ", arr)
+    print("array_len(arr) = ", array_len(arr))
+    
+    print("array_contains(arr, 20) = ", array_contains(arr, 20))
+    print("array_contains(arr, 50) = ", array_contains(arr, 50))
+    
+    print("Inserting 15 at index 1...")
+    array_insert(arr, 1, 15)
+    print("After insert: ", arr)
+    
+    print("Removing element at index 2 (should be 20)...")
+    var rem: f64 = array_remove(arr, 2)
+    print("Removed value: ", rem)
+    print("After remove: ", arr)
+    
+    print("Reversing array...")
+    array_reverse(arr)
+    print("After reverse: ", arr)
+    
+    log("\n=== Testing Raised Local Variables Limit ===", .blue)
+    var sum: f64 = 0
+    // Declaring a bunch of variables to ensure no compilation issues
+    var v1: f64 = 1
+    var v2: f64 = 2
+    var v3: f64 = 3
+    var v4: f64 = 4
+    var v5: f64 = 5
+    sum = v1 + v2 + v3 + v4 + v5
+    print("Sum of local variables v1..v5: ", sum)
+}

@@ -1,0 +1,39 @@
+name: Build Binaries
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [x86_64-linux, x86_64-windows, aarch64-macos]
+        include:
+          - target: x86_64-linux
+            output: ahhhhh
+          - target: x86_64-windows
+            output: ahhhhh.exe
+          - target: aarch64-macos
+            output: ahhhhh
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.13.0
+
+      - name: Build
+        run: zig build -Dtarget=${{ matrix.target }} -Doptimize=ReleaseSafe -Draylib=false
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahhhhh-${{ matrix.target }}
+          path: zig-out/bin/${{ matrix.output }}

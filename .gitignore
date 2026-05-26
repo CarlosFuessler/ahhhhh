@@ -1,0 +1,21 @@
+# Zig build directories
+.zig-cache/
+zig-out/
+build/
+
+# macOS system files
+.DS_Store
+
+# Compile outputs
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+ahhhhh
+ahhhhh.exe
+
+# Editor backups
+*.bak
+*~

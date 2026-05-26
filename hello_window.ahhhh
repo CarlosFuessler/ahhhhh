@@ -1,0 +1,12 @@
+fn main() {
+    var win = window_create(800, 600, "Hello ahhhhh!")
+    
+    while !window_should_close(win) {
+        begin_draw(win)
+        clear_background(win, 20, 20, 20, 255)
+        draw_text(win, "Hello World from ahhhhh!", 190, 280, 40, 255, 255, 255, 255)
+        end_draw(win)
+    }
+    
+    window_close(win)
+}

@@ -1,0 +1,16 @@
+fn greet(name: string) {
+    print("Hello, ", name, "!")
+}
+
+fn factorial(n: f64) f64 {
+    if n <= 1 {
+        return 1
+    }
+    return n * factorial(n - 1)
+}
+
+fn is_even(n: f64) bool {
+    // We don't have % in the compiler? Let's check.
+    // I saw OP_MOD in vm.c earlier.
+    return (n % 2) == 0
+}
