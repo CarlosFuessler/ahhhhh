@@ -1,19 +1,18 @@
 #!/bin/bash
 
 # run_benchmarks.sh
-# Compiles and executes Fibonacci(35) benchmark in C, Python, and ahhhhh,
-# then presents a clean, formatted comparison table.
+# fibonacci-benchmark fuer c, python und ahhhhh
 
 echo "==========================================="
 echo "  Running Fibonacci(35) Benchmarks...      "
 echo "==========================================="
 echo ""
 
-# 1. Compile C binary
+# 1. c-programm bauen
 echo "[1/4] Compiling C benchmark..."
 clang -O3 fib.c -o fib_c
 
-# 2. Verify ahhhhh binary exists, compile if missing
+# 2. ahhhhh-programm pruefen
 if [ ! -f "./zig-out/bin/ahhhhh" ]; then
     echo "[2/4] Building ahhhhh binary..."
     zig build -Doptimize=ReleaseFast
@@ -21,7 +20,7 @@ else
     echo "[2/4] ahhhhh binary found, using existing."
 fi
 
-# 3. Run benchmarks and capture execution times
+# 3. benchmarks ausfuehren und zeit messen
 echo "[3/4] Running C benchmark..."
 c_out=$(./fib_c)
 c_time=$(echo "$c_out" | grep "Time taken" | awk '{print $3}')
@@ -34,14 +33,14 @@ echo "[5/5] Running ahhhhh benchmark..."
 ah_out=$(./zig-out/bin/ahhhhh fib.ahhhh)
 ah_time=$(echo "$ah_out" | grep "Time taken" | awk '{print $3}')
 
-# Calculate performance ratio relative to C using awk
+# verhaeltnis berechnen
 py_ratio=$(awk -v t1="$py_time" -v t2="$c_time" 'BEGIN {printf "%.1fx", t1/t2}')
 ah_ratio=$(awk -v t1="$ah_time" -v t2="$c_time" 'BEGIN {printf "%.1fx", t1/t2}')
 
-# Clean up temporary compiled binary
+# aufraeumen
 rm -f fib_c
 
-# 4. Print results table
+# 4. tabelle ausgeben
 echo ""
 echo "========================================================="
 echo "                   BENCHMARK RESULTS                     "

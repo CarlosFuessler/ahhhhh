@@ -25,14 +25,85 @@ The stack-based Virtual Machine (VM) runs the bytecode instructions. It includes
 
 ---
 
-## Key Features
+## Language Specifications and Syntax
 
-| Feature | Description | Syntax Example |
-| :--- | :--- | :--- |
-| **Naming Conventions** | Strict snake_case for variables/functions, PascalCase for Structs. | `var item_count = 5.0` |
-| **Functions** | Supports recursion, typed parameters, and explicit return types. | `fn double(x: f64) f64 { return x * 2 }` |
-| **Control Flow** | Supports if-else branches, while loops, and for range iterations. | `for i in 0..5 { print(i) }` |
-| **Data Structures** | Dynamic arrays and user-defined struct types. | `struct Point { x: f64 }` |
+### Naming Conventions
+* **snake_case** for variables and functions.
+* **PascalCase** for custom types (Structs, Enums).
+* **No semicolons** are required to end statements.
+
+### Variables and Constants
+Variables are declared using the `var` keyword and their types can be inferred or explicitly specified. Constants are defined using the `const` keyword.
+```ahhhh
+var x = 1.0           // Inferred as f64
+const y: string = "hi" // Explicit type
+var z: bool = true
+```
+
+### Functions
+Functions are declared using `fn` and can specify typed parameters and return values.
+```ahhhh
+fn add(a: f64, b: f64) f64 {
+    return a + b
+}
+
+fn greet(name: string) {
+    print("Hello, ", name)
+}
+```
+
+### Control Flow
+```ahhhh
+if x > 0 {
+    print("positive")
+} else {
+    print("non-positive")
+}
+
+for i in 0..10 {
+    print(i)
+}
+
+while x < 100 {
+    x = x * 2
+    if x == 50 { br } // break out of loop
+}
+```
+
+### Data Structures
+
+#### Structs
+```ahhhh
+struct Point {
+    x: f64,
+    y: f64
+}
+
+var p = Point{ x: 10, y: 20 }
+print(p.x)
+```
+
+#### Arrays
+```ahhhh
+var arr = [1, 2, 3]
+print(arr[0])
+print(arr.len) // Get array length
+```
+
+### File Includes
+Use `@(path)` to import and run other `.ahhhh` source files directly inside your script.
+```ahhhh
+@(math_utils.ahhhh)
+```
+
+---
+
+## Standard Library Reference
+
+* **Input & Output:** `print(...)`, `log(...)`, `input(prompt)`
+* **Mathematics:** `sqrt(x)`, `abs(x)`, `pow(base, exp)`, `ln(x)`, `exp(x)`, `log10(x)`, `atan2(y, x)`, `sin(x)`, `cos(x)`, `tan(x)`, `floor(x)`, `ceil(x)`
+* **System & Time:** `clock()`, `exit(code)`
+* **Array Manipulation:** `append(arr, val)`, `pop(arr)`
 
 ---
 
@@ -83,12 +154,3 @@ fn main() {
 
 main()
 ```
-
----
-
-## Standard Library Reference
-
-* **Input & Output:** `print(...)`, `log(...)`, `input(prompt)`
-* **Mathematics:** `sqrt(x)`, `abs(x)`, `pow(base, exp)`, `sin(x)`, `cos(x)`, `tan(x)`, `floor(x)`, `ceil(x)`
-* **System & Time:** `clock()`, `exit(code)`
-* **Array Manipulation:** `append(arr, val)`, `pop(arr)`

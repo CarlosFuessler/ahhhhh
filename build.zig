@@ -66,6 +66,8 @@ pub fn build(b: *std.Build) void {
         "src/lexer/lexer.c",
         "src/lexer/token_stream.c",
         "src/parser/parser.c",
+        "src/parser/parser_expr.c",
+        "src/parser/parser_utils.c",
         "src/compiler/compiler.c",
         "src/compiler/type.c",
         "src/vm/chunk.c",

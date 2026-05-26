@@ -3,6 +3,7 @@
 
 #include "lexer/token.h"
 #include "lexer/token_stream.h"
+#include "buffer/buffer.h"
 
 #include "stddef.h"
 #include "stdio.h"
@@ -245,5 +246,33 @@ void ast_statement_print(AstStatement *node, int depth, FILE *out);
 int ast_expression_parse(TokenStream *tokens, AstExpression *node, Token *errtok);
 void ast_expression_free(AstExpression *node);
 void ast_expression_print(AstExpression *node, int depth, FILE *out);
+
+// hilfsfunktionen fuer print und free (in lowercase und german)
+void ast_lvalue_free(AstLvalueExpression *node);
+void ast_block_free(AstBlock *node);
+void ast_switch_clause_free(AstSwitchClause *clause);
+void ast_lvalue_print(AstLvalueExpression *node, int depth, FILE *out);
+void ast_block_print(AstBlock *node, int depth, FILE *out);
+
+// gemeinsame parser-hilfsfunktionen
+char *dup_cstr(const char *src);
+void set_static_error(Token *errtok, int line, int col, const char *message);
+void set_error_token(Token *errtok, Token tok);
+int expect_type(TokenStream *tokens, TokenType type, Token *out, Token *errtok);
+int expect_keyword(TokenStream *tokens, const char *word, Token *out, Token *errtok);
+void skip_newlines(TokenStream *tokens);
+int alloc_expression_ptr(TokenStream *tokens, Token *errtok, AstExpression value, AstExpression **out);
+int alloc_statement_ptr(TokenStream *tokens, Token *errtok, AstStatement value, AstStatement **out);
+int alloc_block_ptr(TokenStream *tokens, Token *errtok, AstBlock value, AstBlock **out);
+
+int token_has_string(TokenType type);
+int keyword_is(Token tok, const char *word);
+int append_expression(AstExpression **items, size_t *len, size_t *cap, AstExpression item);
+int append_statement(AstStatement **items, size_t *len, size_t *cap, AstStatement item);
+int append_string(char ***items, size_t *len, size_t *cap, char *item);
+int append_switch_clause(AstSwitchClause **items, size_t *len, size_t *cap, AstSwitchClause item);
+const char *token_symbol(TokenType type);
+int buffer_push_cstr(CharBuffer *buffer, const char *str);
+int append_token_text(CharBuffer *buffer, Token tok);
 
 #endif // PARSER_H
