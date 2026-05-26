@@ -322,12 +322,88 @@ static void collect_garbage(VM *vm) {
     }
 }
 
+static void debug_trace_step(VM *vm, CallFrame *frame) {
+    printf("          ");
+    for (Value *slot = vm->stack.stack; slot < vm->stack.stack_top; slot++) {
+        printf("[ ");
+        print_value(*slot);
+        printf(" ]");
+    }
+    printf("\n");
+    disassemble_instruction(frame->function->chunk, (int)(frame->ip - frame->function->chunk->code));
+}
+
 static InterpretResult run(VM *vm) {
     CallFrame *frame = current_frame(vm);
     
 #define READ_BYTE() (*frame->ip++)
 #define READ_SHORT() (frame->ip += 2, (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1]))
+
+#ifdef __GNUC__
+    static void* dispatch_table[] = {
+        &&LABEL_OP_CONSTANT,
+        &&LABEL_OP_NULL,
+        &&LABEL_OP_TRUE,
+        &&LABEL_OP_FALSE,
+        &&LABEL_OP_LOAD_GLOBAL,
+        &&LABEL_OP_STORE_GLOBAL,
+        &&LABEL_OP_LOAD_LOCAL,
+        &&LABEL_OP_STORE_LOCAL,
+        &&LABEL_OP_ADD,
+        &&LABEL_OP_SUB,
+        &&LABEL_OP_MUL,
+        &&LABEL_OP_DIV,
+        &&LABEL_OP_MOD,
+        &&LABEL_OP_EQ,
+        &&LABEL_OP_NE,
+        &&LABEL_OP_LT,
+        &&LABEL_OP_GT,
+        &&LABEL_OP_LE,
+        &&LABEL_OP_GE,
+        &&LABEL_OP_NOT,
+        &&LABEL_OP_NEG,
+        &&LABEL_OP_PRINT,
+        &&LABEL_OP_JUMP,
+        &&LABEL_OP_JUMP_IF_FALSE,
+        &&LABEL_OP_LOOP,
+        &&LABEL_OP_CALL,
+        &&LABEL_OP_RETURN,
+        &&LABEL_OP_CLOSURE,
+        &&LABEL_OP_CLOSE_UPVALUE,
+        &&LABEL_OP_GET_GLOBAL,
+        &&LABEL_OP_DEFINE_GLOBAL,
+        &&LABEL_OP_INDEX_GET,
+        &&LABEL_OP_INDEX_SET,
+        &&LABEL_OP_GET_FIELD,
+        &&LABEL_OP_SET_FIELD,
+        &&LABEL_OP_ARRAY,
+        &&LABEL_OP_ARRAY_GET,
+        &&LABEL_OP_ARRAY_SET,
+        &&LABEL_OP_ARRAY_LEN,
+        &&LABEL_OP_STRUCT,
+        &&LABEL_OP_TYPE,
+        &&LABEL_OP_POP,
+        &&LABEL_OP_DUP,
+        &&LABEL_OP_BREAK,
+        &&LABEL_OP_CONTINUE
+    };
+
+    #define DISPATCH() \
+        do { \
+            if (vm->debug_trace) debug_trace_step(vm, frame); \
+            goto *dispatch_table[READ_BYTE()]; \
+        } while (0)
+
+    #define CASE_CODE(op) LABEL_##op
+    #define BREAK_CODE() DISPATCH()
+#else
+    #define CASE_CODE(op) case op
+    #define BREAK_CODE() break
+#endif
     
+#ifdef __GNUC__
+    DISPATCH();
+#else
     for (;;) {
         if (vm->debug_trace) {
             printf("          ");
@@ -342,16 +418,17 @@ static InterpretResult run(VM *vm) {
 
         uint8_t opcode = READ_BYTE();
         switch (opcode) {
-            case OP_CONSTANT: {
+#endif
+            CASE_CODE(OP_CONSTANT): {
                 uint8_t idx = READ_BYTE();
                 push(vm, frame->function->chunk->constants.values[idx]);
-                break;
+                BREAK_CODE();
             }
-            case OP_NULL:  push(vm, (Value){VALUE_NULL, {0}}); break;
-            case OP_TRUE:  push(vm, (Value){VALUE_BOOL, {.boolean = 1}}); break;
-            case OP_FALSE: push(vm, (Value){VALUE_BOOL, {.boolean = 0}}); break;
+            CASE_CODE(OP_NULL):  push(vm, (Value){VALUE_NULL, {0}}); BREAK_CODE();
+            CASE_CODE(OP_TRUE):  push(vm, (Value){VALUE_BOOL, {.boolean = 1}}); BREAK_CODE();
+            CASE_CODE(OP_FALSE): push(vm, (Value){VALUE_BOOL, {.boolean = 0}}); BREAK_CODE();
 
-            case OP_ADD: {
+            CASE_CODE(OP_ADD): {
                 Value b = pop(vm), a = pop(vm);
                 if (IS_STRING(a) && IS_STRING(b)) {
                     size_t len_a = strlen(AS_CSTRING(a));
@@ -367,68 +444,68 @@ static InterpretResult run(VM *vm) {
                     fprintf(stderr, "Runtime error: invalid operands for +\n");
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                break;
+                BREAK_CODE();
             }
-            case OP_SUB: {
+            CASE_CODE(OP_SUB): {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_NUMBER, {.number = AS_NUMBER(a) - AS_NUMBER(b)}});
-                break;
+                BREAK_CODE();
             }
-            case OP_MUL: {
+            CASE_CODE(OP_MUL): {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_NUMBER, {.number = AS_NUMBER(a) * AS_NUMBER(b)}});
-                break;
+                BREAK_CODE();
             }
-            case OP_DIV: {
+            CASE_CODE(OP_DIV): {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_NUMBER, {.number = AS_NUMBER(a) / AS_NUMBER(b)}});
-                break;
+                BREAK_CODE();
             }
-            case OP_MOD: {
+            CASE_CODE(OP_MOD): {
                 Value b = pop(vm), a = pop(vm);
                 if (AS_NUMBER(b) == 0) {
                     fprintf(stderr, "Runtime error: modulo by zero\n");
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 push(vm, (Value){VALUE_NUMBER, {.number = fmod(AS_NUMBER(a), AS_NUMBER(b))}});
-                break;
+                BREAK_CODE();
             }
 
-            case OP_EQ: {
+            CASE_CODE(OP_EQ): {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_BOOL, {.boolean = values_equal(a, b)}});
-                break;
+                BREAK_CODE();
             }
-            case OP_NE: {
+            CASE_CODE(OP_NE): {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_BOOL, {.boolean = !values_equal(a, b)}});
-                break;
+                BREAK_CODE();
             }
-            case OP_LT: {
+            CASE_CODE(OP_LT): {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_BOOL, {.boolean = AS_NUMBER(a) < AS_NUMBER(b)}});
-                break;
+                BREAK_CODE();
             }
-            case OP_GT: {
+            CASE_CODE(OP_GT): {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_BOOL, {.boolean = AS_NUMBER(a) > AS_NUMBER(b)}});
-                break;
+                BREAK_CODE();
             }
-            case OP_LE: {
+            CASE_CODE(OP_LE): {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_BOOL, {.boolean = AS_NUMBER(a) <= AS_NUMBER(b)}});
-                break;
+                BREAK_CODE();
             }
-            case OP_GE: {
+            CASE_CODE(OP_GE): {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_BOOL, {.boolean = AS_NUMBER(a) >= AS_NUMBER(b)}});
-                break;
+                BREAK_CODE();
             }
 
-            case OP_NOT: push(vm, (Value){VALUE_BOOL, {.boolean = !is_true(pop(vm))}}); break;
-            case OP_NEG: push(vm, (Value){VALUE_NUMBER, {.number = -AS_NUMBER(pop(vm))}}); break;
+            CASE_CODE(OP_NOT): push(vm, (Value){VALUE_BOOL, {.boolean = !is_true(pop(vm))}}); BREAK_CODE();
+            CASE_CODE(OP_NEG): push(vm, (Value){VALUE_NUMBER, {.number = -AS_NUMBER(pop(vm))}}); BREAK_CODE();
 
-            case OP_PRINT: {
+            CASE_CODE(OP_PRINT): {
                 uint8_t arg_count = READ_BYTE();
                 Value args[8];
                 for (int i = 0; i < arg_count; i++) args[i] = pop(vm);
@@ -438,10 +515,10 @@ static InterpretResult run(VM *vm) {
                     args[arg_count - 1 - i] = temp;
                 }
                 vm_native_print(vm, arg_count, args);
-                break;
+                BREAK_CODE();
             }
 
-            case OP_GET_GLOBAL: {
+            CASE_CODE(OP_GET_GLOBAL): {
                 uint8_t index = READ_BYTE();
                 Value name_val = frame->function->chunk->constants.values[index];
                 ObjString *name = (ObjString*)AS_OBJ(name_val);
@@ -451,17 +528,17 @@ static InterpretResult run(VM *vm) {
                 } else {
                     push(vm, (Value){VALUE_NULL, {0}});
                 }
-                break;
+                BREAK_CODE();
             }
-            case OP_DEFINE_GLOBAL: {
+            CASE_CODE(OP_DEFINE_GLOBAL): {
                 uint8_t index = READ_BYTE();
                 Value name_val = frame->function->chunk->constants.values[index];
                 ObjString *name = (ObjString*)AS_OBJ(name_val);
                 Value value = pop(vm);
                 table_set(&vm->globals.table, name, value);
-                break;
+                BREAK_CODE();
             }
-            case OP_STORE_GLOBAL: {
+            CASE_CODE(OP_STORE_GLOBAL): {
                 uint8_t index = READ_BYTE();
                 Value name_val = frame->function->chunk->constants.values[index];
                 ObjString *name = (ObjString*)AS_OBJ(name_val);
@@ -471,21 +548,21 @@ static InterpretResult run(VM *vm) {
                     fprintf(stderr, "Undefined variable '%s'.\n", name->chars);
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                break;
+                BREAK_CODE();
             }
 
-            case OP_LOAD_LOCAL: {
+            CASE_CODE(OP_LOAD_LOCAL): {
                 uint8_t index = READ_BYTE();
                 push(vm, frame->slots[index]);
-                break;
+                BREAK_CODE();
             }
-            case OP_STORE_LOCAL: {
+            CASE_CODE(OP_STORE_LOCAL): {
                 uint8_t index = READ_BYTE();
                 frame->slots[index] = peek(vm);
-                break;
+                BREAK_CODE();
             }
 
-            case OP_GET_FIELD: {
+            CASE_CODE(OP_GET_FIELD): {
                 uint8_t name_index = READ_BYTE();
                 Value name_val = frame->function->chunk->constants.values[name_index];
                 ObjString *name = (ObjString*)AS_OBJ(name_val);
@@ -493,12 +570,12 @@ static InterpretResult run(VM *vm) {
                 
                 if (IS_ARRAY(object_val) && strcmp(name->chars, "len") == 0) {
                     push(vm, (Value){VALUE_NUMBER, {.number = (double)((ObjArray*)AS_OBJ(object_val))->count}});
-                    break;
+                    BREAK_CODE();
                 }
                 
                 if (IS_STRING(object_val) && strcmp(name->chars, "len") == 0) {
                     push(vm, (Value){VALUE_NUMBER, {.number = (double)strlen(AS_CSTRING(object_val))}});
-                    break;
+                    BREAK_CODE();
                 }
                 
                 if (!IS_OBJECT(object_val)) {
@@ -513,9 +590,9 @@ static InterpretResult run(VM *vm) {
                 } else {
                     push(vm, (Value){VALUE_NULL, {0}});
                 }
-                break;
+                BREAK_CODE();
             }
-            case OP_SET_FIELD: {
+            CASE_CODE(OP_SET_FIELD): {
                 uint8_t name_index = READ_BYTE();
                 Value name_val = frame->function->chunk->constants.values[name_index];
                 ObjString *name = (ObjString*)AS_OBJ(name_val);
@@ -529,9 +606,9 @@ static InterpretResult run(VM *vm) {
                 
                 ObjObject *obj = AS_OBJ_STRUCT(object_val);
                 table_set(obj->fields, name, value);
-                break;
+                BREAK_CODE();
             }
-            case OP_STRUCT: {
+            CASE_CODE(OP_STRUCT): {
                 uint8_t field_count = READ_BYTE();
                 // Read field names first to skip them in bytecode
                 uint8_t name_indices[256];
@@ -552,10 +629,10 @@ static InterpretResult run(VM *vm) {
                     table_set(obj->fields, name, value);
                 }
                 push(vm, (Value){VALUE_OBJECT, {.obj = (Obj*)obj}});
-                break;
+                BREAK_CODE();
             }
 
-            case OP_ARRAY: {
+            CASE_CODE(OP_ARRAY): {
                 uint8_t count = READ_BYTE();
                 ObjArray *array = (ObjArray *)allocate_obj(vm, sizeof(ObjArray), OBJ_ARRAY);
                 array->count = count;
@@ -568,10 +645,10 @@ static InterpretResult run(VM *vm) {
                     }
                 }
                 push(vm, (Value){VALUE_ARRAY, {.obj = (Obj*)array}});
-                break;
+                BREAK_CODE();
             }
 
-            case OP_INDEX_GET: {
+            CASE_CODE(OP_INDEX_GET): {
                 Value index_val = pop(vm);
                 Value base_val = pop(vm);
 
@@ -605,9 +682,9 @@ static InterpretResult run(VM *vm) {
                     fprintf(stderr, "Runtime error: only strings and arrays can be indexed.\n");
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                break;
+                BREAK_CODE();
             }
-            case OP_INDEX_SET: {
+            CASE_CODE(OP_INDEX_SET): {
                 Value index_val = pop(vm);
                 Value base_val = pop(vm);
                 Value value = peek(vm);
@@ -628,37 +705,37 @@ static InterpretResult run(VM *vm) {
                     fprintf(stderr, "Runtime error: only arrays can be index-set.\n");
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                break;
+                BREAK_CODE();
             }
 
-            case OP_JUMP: {
+            CASE_CODE(OP_JUMP): {
                 uint16_t offset = READ_SHORT();
                 frame->ip += offset;
-                break;
+                BREAK_CODE();
             }
-            case OP_JUMP_IF_FALSE: {
+            CASE_CODE(OP_JUMP_IF_FALSE): {
                 uint16_t offset = READ_SHORT();
                 if (!is_true(pop(vm))) frame->ip += offset;
-                break;
+                BREAK_CODE();
             }
-            case OP_LOOP: {
+            CASE_CODE(OP_LOOP): {
                 uint16_t offset = READ_SHORT();
                 frame->ip -= offset;
-                break;
+                BREAK_CODE();
             }
-            case OP_POP: pop(vm); break;
-            case OP_DUP: push(vm, peek(vm)); break;
+            CASE_CODE(OP_POP): pop(vm); BREAK_CODE();
+            CASE_CODE(OP_DUP): push(vm, peek(vm)); BREAK_CODE();
 
-            case OP_CALL: {
+            CASE_CODE(OP_CALL): {
                 uint8_t arg_count = READ_BYTE();
                 if (!call_value(vm, peek_n(vm, arg_count), arg_count)) {
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 frame = current_frame(vm);
-                break;
+                BREAK_CODE();
             }
 
-            case OP_RETURN: {
+            CASE_CODE(OP_RETURN): {
                 Value result = pop(vm);
                 vm->frame_count--;
                 if (vm->frame_count == 0) {
@@ -669,23 +746,38 @@ static InterpretResult run(VM *vm) {
                 vm->stack.stack_top = frame->slots - 1;
                 push(vm, result);
                 frame = current_frame(vm);
-                break;
+                BREAK_CODE();
             }
 
-            case OP_CLOSURE: {
+            CASE_CODE(OP_CLOSURE): {
                 Value function_val = pop(vm);
                 ObjFunction *function = AS_FUNCTION(function_val);
                 ObjClosure *closure = (ObjClosure *)allocate_obj(vm, sizeof(ObjClosure), OBJ_CLOSURE);
                 closure->function = function;
                 push(vm, (Value){VALUE_OBJECT, {.obj = (Obj*)closure}});
-                break;
+                BREAK_CODE();
             }
 
+#ifdef __GNUC__
+        LABEL_OP_LOAD_GLOBAL:
+        LABEL_OP_CLOSE_UPVALUE:
+        LABEL_OP_ARRAY_GET:
+        LABEL_OP_ARRAY_SET:
+        LABEL_OP_ARRAY_LEN:
+        LABEL_OP_TYPE:
+        LABEL_OP_BREAK:
+        LABEL_OP_CONTINUE:
+            fprintf(stderr, "Unhandled opcode\n");
+            return INTERPRET_RUNTIME_ERROR;
+#endif
+
+#ifndef __GNUC__
             default:
                 fprintf(stderr, "Unknown opcode %d\n", opcode);
                 return INTERPRET_RUNTIME_ERROR;
         }
     }
+#endif
     
 #undef READ_BYTE
 #undef READ_SHORT
