@@ -151,6 +151,7 @@ static Value vm_native_window_create(VM *vm, int arg_count, Value *args) {
 #if AHHHHH_HAS_RAYLIB
     InitWindow(width, height, title);
     if (!IsWindowReady()) return (Value){VALUE_NULL, {0}};
+    SetTargetFPS(60);
 #else
     (void)title;
     return (Value){VALUE_NULL, {0}};

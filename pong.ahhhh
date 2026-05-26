@@ -10,31 +10,31 @@ fn main() {
     var paddle_h = 100.0
     var paddle_w = 20.0
     
-    // Raylib keys: W = 87, S = 83
+    // raylib-tasten: w = 87, s = 83
     var KEY_W = 87
     var KEY_S = 83
 
     while !window_should_close(win) {
-        // Paddle movement controls
+        // paddle-steuerung
         if is_key_down(KEY_W) { paddle_y = paddle_y - 6 }
         if is_key_down(KEY_S) { paddle_y = paddle_y + 6 }
         
-        // Keep paddle on screen
+        // paddle auf dem bildschirm halten
         if paddle_y < 0 { paddle_y = 0 }
         if paddle_y > 500 { paddle_y = 500 }
         
-        // Ball physics
+        // ballphysik
         ball_x = ball_x + ball_dx
         ball_y = ball_y + ball_dy
         
-        // Top and bottom wall bounce
+        // wandabprall oben unten
         if ball_y < 10 { ball_dy = abs(ball_dy) }
         if ball_y > 590 { ball_dy = -abs(ball_dy) }
         
-        // Right wall bounce
+        // wandabprall rechts
         if ball_x > 790 { ball_dx = -abs(ball_dx) }
         
-        // Paddle collision (paddle is at x=10 to x=30)
+        // paddle-kollision
         if ball_x < 30 {
             if ball_y > paddle_y {
                 if ball_y < paddle_y + paddle_h {
@@ -43,28 +43,28 @@ fn main() {
             }
         }
         
-        // Reset when ball goes past paddle
+        // ball zurücksetzen wenn vorbei
         if ball_x < 0 {
             ball_x = 400.0
             ball_y = 300.0
             ball_dx = 5.0
-            ball_dy = (rand_range(-3, 3) * 2) // add some variety to the angle
+            ball_dy = (rand_range(-3, 3) * 2)
             if ball_dy == 0 { ball_dy = 4.0 }
         }
         
         begin_draw(win)
         clear_background(win, 20, 20, 20, 255)
         
-        // Draw center division line
+        // mittellinie zeichnen
         draw_line(win, 400, 0, 400, 600, 50, 50, 50, 255)
         
-        // Draw native solid paddle
+        // paddle zeichnen
         draw_rectangle(win, 10, paddle_y, paddle_w, paddle_h, 255, 255, 255, 255)
         
-        // Draw native solid circle ball
+        // ball zeichnen
         draw_circle(win, ball_x, ball_y, 10, 255, 255, 0, 255)
         
-        // Display score/instructions
+        // steuerung anzeigen
         draw_text(win, "W/S to Move", 50, 20, 20, 150, 150, 150, 255)
         
         end_draw(win)
