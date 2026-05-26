@@ -1,0 +1,10 @@
+fn fib(n: f64) f64 {
+    if n <= 1 { return n }
+    return fib(n - 1) + fib(n - 2)
+}
+
+var start = clock()
+var result = fib(35)
+var end = clock()
+print("Fibonacci(35) = ", result)
+print("Time taken: ", end - start, " seconds")
