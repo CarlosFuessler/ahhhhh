@@ -272,7 +272,8 @@ Value vm_native_input(VM *vm, int arg_count, Value *args) {
     
     char buffer[1024];
     if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
-        return (Value){VALUE_NULL, {0}};
+        ObjString *string = copy_string(vm, "", 0);
+        return (Value){VALUE_STRING, {.obj = (Obj*)string}};
     }
     
     size_t len = strlen(buffer);

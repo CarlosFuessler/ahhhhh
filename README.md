@@ -2,6 +2,43 @@
 
 A systems-inspired language featuring a custom stack-based bytecode virtual machine, strict naming conventions, and an automated garbage collector.
 
+```text
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│  main.ahhhh ────────────────────────────────────────────────────────────── [ahhhhh VM] │
+├───────────────────────────────────────────────────────┬────────────────────────────────┤
+│  fn factorial(n: f64) f64 {                           │  VM EXECUTION STATE            │
+│      if n <= 1 { return 1 }                           ├────────────────────────────────┤
+│      return n * factorial(n - 1)                      │  IP: 0x00A8  [OP_CALL]         │
+│  }                                                    │  SP: 0x0004  [STACK SIZE: 3]   │
+│                                                       ├────────────────────────────────┤
+│  fn main() {                                          │  VM STACK                      │
+│      var res = factorial(5)                           │  ┌──────────────────────────┐  │
+│      print("factorial(5) = ", res, .cyan)             │  │  0x0003: [VALUE_NUMBER]5 │  │
+│  }                                                    │  │  0x0002: [VALUE_NUMBER]4 │  │
+│                                                       │  │  0x0001: [VALUE_NUMBER]3 │  │
+│                                                       │  └──────────────────────────┘  │
+├───────────────────────────────────────────────────────┴────────────────────────────────┤
+│                                                                                        │
+│                  ____ _        __      __      __      __      __                      │
+│                 / __ `/       / /_    / /_    / /_    / /_    / /_                     │
+│                / /_/ /       / __ \  / __ \  / __ \  / __ \  / __ \                    │
+│                \__,_/       /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/                    │
+│                                                                                        │
+│                  -- THE SYSTEMS-INSPIRED VM PROGRAMMING LANGUAGE --                    │
+│                                                                                        │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│  Compiler Terminal                                                                     │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│  $ zig build && ./zig-out/bin/ahhhhh main.ahhhh                                        │
+│  [lexer]   Successfully tokenized 'main.ahhhh' into 28 tokens.                         │
+│  [parser]  Generated AST with 2 functions and 1 include.                               │
+│  [codegen] Generated 14 VM opcodes (constant table size: 4).                           │
+│  [vm]      Starting stack-based bytecode interpreter...                                │
+│  factorial(5) = 120                                                                    │
+│  [vm]      Execution finished in 0.18ms. GC reclaimed 0 bytes (0 objects allocated).   │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## How the Language Works

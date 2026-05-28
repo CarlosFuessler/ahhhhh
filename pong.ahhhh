@@ -1,5 +1,5 @@
 fn main() {
-    var win = window_create(800, 600, "ahhhhh Pong")
+    var win = window_create(800, 600, "Pong in Ahhhh!")
     
     var ball_x = 400.0
     var ball_y = 300.0
@@ -65,7 +65,7 @@ fn main() {
         draw_circle(win, ball_x, ball_y, 10, 255, 255, 0, 255)
         
         // steuerung anzeigen
-        draw_text(win, "W/S to Move", 50, 20, 20, 150, 150, 150, 255)
+        draw_text(win, "W/S für hoch und runter", 50, 20, 20, 150, 150, 150, 255)
         
         end_draw(win)
     }

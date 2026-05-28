@@ -1,14 +1,14 @@
 @(test_functions.ahhhh)
 
 fn main() {
-    log("--- Testing Standard Library Functions ---", .cyan)
+    log("--- Testen von STDLIB ---", .cyan)
     print("sqrt(16) = ", sqrt(16))
     print("abs(-42) = ", abs(-42))
     print("pow(2, 10) = ", pow(2, 10))
     print("ln(exp(1)) = ", ln(exp(1)))
     
-    log("\n--- Testing Included Functions ---", .yellow)
-    greet("Gemini")
+    log("\n--- Test vin included funktionen ---", .yellow)
+    greet("John")
     
     var n: f64 = 5
     print("factorial(", n, ") = ", factorial(n), .magenta)
@@ -20,7 +20,7 @@ fn main() {
         print(x, " is odd", .red)
     }
     
-    log("\n--- Testing Array and Loops ---", .blue)
+    log("\n--- Test Array und Schleifen ---", .blue)
     var arr: []f64 = [1.0, 2.0, 3.0, 4.0, 5.0]
     var sum: f64 = 0
     for i in 0..arr.len {
