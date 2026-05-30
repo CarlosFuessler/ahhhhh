@@ -7,10 +7,10 @@
 #include "stddef.h"
 
 #define TOKEN_STREAM_MAX_PEEK 4
-// keep blog/article naming variant as an alias.
+// Namensvariante blog/article als Alias beibehalten.
 #define TOKEN_STREAM_MAX_PEAK TOKEN_STREAM_MAX_PEEK
 
-// token stream with bounded lookahead over the lexer.
+// Token-Stream mit begrenztem Lookahead über den Lexer.
 typedef struct {
   Lexer lexer;
   Token tokens[TOKEN_STREAM_MAX_PEEK];
@@ -21,9 +21,9 @@ typedef struct {
 void token_stream_init(TokenStream *stream, Lexer lexer);
 void token_stream_free(TokenStream *stream);
 
-// peek `n` tokens ahead without consuming.
+// `n` Token vorausschauen, ohne sie zu konsumieren.
 Token token_stream_peek(TokenStream *stream, size_t n);
-// consume and return the next token.
+// Das nächste Token konsumieren und zurückgeben.
 Token token_stream_read(TokenStream *stream);
 
 #endif // TOKEN_STREAM_H

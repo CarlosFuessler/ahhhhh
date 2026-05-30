@@ -4,7 +4,7 @@
 #include "stddef.h"
 #include "token.h"
 
-// lexer state for reading from a source string
+// Lexer-Zustand zum Lesen aus einer Quellzeichenkette
 typedef struct {
   const char *input;
   size_t pos;
@@ -12,16 +12,16 @@ typedef struct {
   int col;
 } Lexer;
 
-// initialize lexer state
+// Lexer-Zustand initialisieren
 Lexer lexer_init(const char *input);
-// peek current char without consuming it
+// Aktuelles Zeichen vorausschauen, ohne es zu konsumieren
 int lexer_peek(Lexer *lexer);
-// read current char and advance
+// Aktuelles Zeichen lesen und vorrücken
 int lexer_next(Lexer *lexer);
-// read one token from input
+// Ein Token aus der Eingabe lesen
 Token tokenize_next(Lexer *lexer);
 
-// check if an identifier is a keyword
+// Prüfen, ob ein Bezeichner ein Schlüsselwort ist
 int is_keyword(const char *str);
 
 #endif // LEXER_H

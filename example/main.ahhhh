@@ -1,13 +1,13 @@
 @(test_functions.ahhhh)
 
 fn main() {
-    log("--- Testen von STDLIB ---", .cyan)
+    log("--- STDLIB ---", .cyan)
     print("sqrt(16) = ", sqrt(16))
     print("abs(-42) = ", abs(-42))
     print("pow(2, 10) = ", pow(2, 10))
     print("ln(exp(1)) = ", ln(exp(1)))
     
-    log("\n--- Test vin included funktionen ---", .yellow)
+    log("\n--- Test von included funktionen ---", .yellow)
     greet("John")
     
     var n: f64 = 5
@@ -15,16 +15,16 @@ fn main() {
     
     var x: f64 = 10
     if is_even(x) {
-        print(x, " is even", .green)
+        print(x, " gerade", .green)
     } else {
-        print(x, " is odd", .red)
+        print(x, " ungerade", .red)
     }
     
-    log("\n--- Test Array und Schleifen ---", .blue)
+    log("\n--- Array und Schleifen ---", .blue)
     var arr: []f64 = [1.0, 2.0, 3.0, 4.0, 5.0]
     var sum: f64 = 0
     for i in 0..arr.len {
         sum = sum + arr[i]
     }
-    print("Sum of ", arr, " is ", sum, .white)
+    print("Summe des Arrays ", arr, " ist ", sum, .white)
 }

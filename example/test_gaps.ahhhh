@@ -65,7 +65,7 @@ fn main() {
     
     log("\n=== Testing Raised Local Variables Limit ===", .blue)
     var sum: f64 = 0
-    // Declaring a bunch of variables to ensure no compilation issues
+    // Deklarieren einer Reihe von Variablen, um sicherzustellen, dass keine Kompilierungsprobleme auftreten
     var v1: f64 = 1
     var v2: f64 = 2
     var v3: f64 = 3

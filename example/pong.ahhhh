@@ -15,26 +15,26 @@ fn main() {
     var KEY_S = 83
 
     while !window_should_close(win) {
-        // paddle-steuerung
+        // Paddle-Steuerung
         if is_key_down(KEY_W) { paddle_y = paddle_y - 6 }
         if is_key_down(KEY_S) { paddle_y = paddle_y + 6 }
         
-        // paddle auf dem bildschirm halten
+        // Paddle auf dem Bildschirm halten
         if paddle_y < 0 { paddle_y = 0 }
         if paddle_y > 500 { paddle_y = 500 }
         
-        // ballphysik
+        // Ballphysik
         ball_x = ball_x + ball_dx
         ball_y = ball_y + ball_dy
         
-        // wandabprall oben unten
+        // Wandabprall oben unten
         if ball_y < 10 { ball_dy = abs(ball_dy) }
         if ball_y > 590 { ball_dy = -abs(ball_dy) }
         
-        // wandabprall rechts
+        // Wandabprall rechts
         if ball_x > 790 { ball_dx = -abs(ball_dx) }
         
-        // paddle-kollision
+        // Paddle-Kollision
         if ball_x < 30 {
             if ball_y > paddle_y {
                 if ball_y < paddle_y + paddle_h {
@@ -43,7 +43,7 @@ fn main() {
             }
         }
         
-        // ball zurücksetzen wenn vorbei
+        // Ball zurücksetzen, wenn er vorbei ist
         if ball_x < 0 {
             ball_x = 400.0
             ball_y = 300.0
@@ -55,16 +55,16 @@ fn main() {
         begin_draw(win)
         clear_background(win, 20, 20, 20, 255)
         
-        // mittellinie zeichnen
+        // Mittellinie zeichnen
         draw_line(win, 400, 0, 400, 600, 50, 50, 50, 255)
         
-        // paddle zeichnen
+        // Paddle zeichnen
         draw_rectangle(win, 10, paddle_y, paddle_w, paddle_h, 255, 255, 255, 255)
         
-        // ball zeichnen
+        // Ball zeichnen
         draw_circle(win, ball_x, ball_y, 10, 255, 255, 0, 255)
         
-        // steuerung anzeigen
+        // Steuerung anzeigen
         draw_text(win, "W/S für hoch und runter", 50, 20, 20, 150, 150, 150, 255)
         
         end_draw(win)

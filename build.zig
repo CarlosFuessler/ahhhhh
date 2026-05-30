@@ -12,12 +12,12 @@ pub fn build(b: *std.Build) void {
         exe_mod.addIncludePath(b.path("src"));
 
         break :blk b.addExecutable(.{
-            .name = "ahhhhh",
+            .name = "ahhhh",
             .root_module = exe_mod,
         });
     } else blk: {
         break :blk b.addExecutable(.{
-            .name = "ahhhhh",
+            .name = "ahhhh",
             .root_source_file = b.path("src/main.c"),
             .target = target,
             .optimize = optimize,
@@ -76,6 +76,8 @@ pub fn build(b: *std.Build) void {
         "src/vm/vm.c",
     };
 
+    writeCompileCommands(b, &sources, use_raylib);
+
     const c_flags = if (use_raylib)
         &[_][]const u8{ "-std=c99", "-DAHHHHH_HAS_RAYLIB=1" }
     else
@@ -94,3 +96,44 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 }
+
+fn writeCompileCommands(b: *std.Build, sources: []const []const u8, use_raylib: bool) void {
+    const cwd_path = std.fs.cwd().realpathAlloc(b.allocator, ".") catch return;
+    defer b.allocator.free(cwd_path);
+
+    const file = std.fs.cwd().createFile("compile_commands.json", .{}) catch return;
+    defer file.close();
+
+    file.writeAll("[\n") catch return;
+
+    const raylib_flag = if (use_raylib) "-DAHHHHH_HAS_RAYLIB=1" else "-DAHHHHH_HAS_RAYLIB=0";
+
+    for (sources, 0..) |src, i| {
+        file.writeAll("  {\n") catch return;
+        
+        // Escape paths for JSON
+        const dir_line = std.fmt.allocPrint(b.allocator, "    \"directory\": \"{s}\",\n", .{cwd_path}) catch return;
+        defer b.allocator.free(dir_line);
+        file.writeAll(dir_line) catch return;
+
+        const file_line = std.fmt.allocPrint(b.allocator, "    \"file\": \"{s}\",\n", .{src}) catch return;
+        defer b.allocator.free(file_line);
+        file.writeAll(file_line) catch return;
+        
+        // Command to run
+        const cmd_line = std.fmt.allocPrint(b.allocator, "    \"command\": \"clang -std=c99 {s} -I{s}/src -I/opt/homebrew/include -c {s}/{s}\"\n", .{
+            raylib_flag, cwd_path, cwd_path, src
+        }) catch return;
+        defer b.allocator.free(cmd_line);
+        file.writeAll(cmd_line) catch return;
+
+        if (i < sources.len - 1) {
+            file.writeAll("  },\n") catch return;
+        } else {
+            file.writeAll("  }\n") catch return;
+        }
+    }
+
+    file.writeAll("]\n") catch return;
+}
+

@@ -3,20 +3,20 @@
 
 #include "stddef.h"
 
-// dynamic character buffer for building strings
+// Dynamischer Zeichenpuffer zum Erstellen von Strings
 typedef struct {
   char *data;
   size_t len;
   size_t cap;
 } CharBuffer;
 
-// initialize an empty buffer
+// Einen leeren Puffer initialisieren
 void buffer_init(CharBuffer *buffer);
-// free buffer memory
+// Pufferspeicher freigeben
 void buffer_free(CharBuffer *buffer);
-// character to the buffer
+// Zeichen in den Puffer schreiben
 int buffer_push(CharBuffer *buffer, char ch);
-// release ownership of the buffer data
+// Eigentümerschaft der Pufferdaten freigeben
 char *buffer_release(CharBuffer *buffer);
 
 #endif // BUFFER_H

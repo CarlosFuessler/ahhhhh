@@ -252,7 +252,7 @@ static void mark_object(Obj *obj) {
     switch (obj->type) {
         case OBJ_FUNCTION: {
             ObjFunction *fn = (ObjFunction *)obj;
-            // Only mark constants if the chunk has been interned.
+            // Konstanten nur markieren, wenn der Chunk interniert wurde.
             if (fn->chunk && fn->chunk->is_interned) {
                 for (int i = 0; i < fn->chunk->constants.count; i++) {
                     mark_value(fn->chunk->constants.values[i]);
@@ -339,15 +339,15 @@ static InterpretResult run(VM *vm) {
 #define READ_BYTE() (*frame->ip++)
 #define READ_SHORT() (frame->ip += 2, (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1]))
 
-// Toggle to enable/disable Computed Gotos.
+// Schalter zum Aktivieren/Deaktivieren von Computed Gotos.
 // 
-// NOTE: On modern Apple Silicon (ARM64) and Clang 15+, the compiler's native 
-// switch-case jump-table optimizer is extremely advanced. A single centralized 
-// switch branch is predicted significantly better by the hardware's Branch Target 
-// Buffer (BTB) than the 45+ separate indirect jumps created by computed gotos.
-// On M-series CPUs, the standard switch loop is therefore faster in practice.
+// HINWEIS: Auf modernem Apple Silicon (ARM64) und Clang 15+ ist der native
+// switch-case Sprungtabellen-Optimierer ist extrem fortschrittlich. Ein einzelner zentraler
+// switch-Zweig wird von der Branch Target der Hardware deutlich besser vorhergesagt
+// Puffer (BTB) als die mehr als 45 separaten indirekten Sprünge, die durch Computed Gotos entstehen.
+// Auf CPUs der M-Serie ist die standardmäßige Switch-Schleife daher in der Praxis schneller.
 // 
-// Uncomment the line below to enable Computed Gotos:
+// Die folgende Zeile einkommentieren, um Computed Gotos zu aktivieren:
 // #define AHHHHH_USE_COMPUTED_GOTOS
 
 #if defined(__GNUC__) && defined(AHHHHH_USE_COMPUTED_GOTOS)
@@ -621,7 +621,7 @@ static InterpretResult run(VM *vm) {
             }
             CASE_CODE(OP_STRUCT): {
                 uint8_t field_count = READ_BYTE();
-                // Read field names first to skip them in bytecode
+                // Feldnamen zuerst lesen, um sie im Bytecode zu überspringen
                 uint8_t name_indices[256];
                 for (int i = 0; i < field_count; i++) {
                     name_indices[i] = READ_BYTE();
@@ -631,7 +631,7 @@ static InterpretResult run(VM *vm) {
                 obj->fields = malloc(sizeof(Table));
                 table_init(obj->fields);
                 
-                // Pop values and associate with names
+                // Werte vom Stack holen und Namen zuweisen
                 for (int i = field_count - 1; i >= 0; i--) {
                     Value value = pop(vm);
                     uint8_t name_index = name_indices[i];
@@ -750,7 +750,7 @@ static InterpretResult run(VM *vm) {
                 Value result = pop(vm);
                 vm->frame_count--;
                 if (vm->frame_count == 0) {
-                    pop(vm); // Pop the rooted temp_fn
+                    pop(vm); // Die verankerte temp_fn vom Stack holen
                     push(vm, result);
                     return INTERPRET_OK;
                 }
@@ -807,7 +807,7 @@ static void intern_constants(VM *vm, Chunk *chunk) {
             value->as.obj = (Obj *)string;
         } else if (value->kind == VALUE_FUNCTION) {
             ObjFunction *fn = (ObjFunction *)value->as.obj;
-            // Root the function to prevent GC from sweeping it if triggered during recursion
+            // Die Funktion verankern, um zu verhindern, dass die GC sie bei der Rekursion bereinigt
             push(vm, (Value){VALUE_FUNCTION, {.obj = (Obj*)fn}});
             if (fn->obj.next == NULL && fn != (ObjFunction*)vm->objects) {
                 fn->obj.next = vm->objects;
@@ -823,7 +823,7 @@ static void intern_constants(VM *vm, Chunk *chunk) {
 }
 
 InterpretResult vm_interpret(VM *vm, Chunk *chunk) {
-    // Wrap chunk in a temporary function to root its constants during interning
+    // Wrap Chunk in eine temporäre Funktion, um seine Konstanten während der Internierung zu verankern
     ObjFunction *temp_fn = (ObjFunction *)allocate_obj(vm, sizeof(ObjFunction), OBJ_FUNCTION);
     temp_fn->chunk = chunk;
     temp_fn->arity = 0;
@@ -836,7 +836,7 @@ InterpretResult vm_interpret(VM *vm, Chunk *chunk) {
     CallFrame *frame = &vm->frames[vm->frame_count++];
     frame->function = temp_fn;
     frame->ip = chunk->code;
-    frame->slots = vm->stack.stack_top - 0; // arg count is 0
+    frame->slots = vm->stack.stack_top - 0; // Argumentanzahl ist 0
     frame->local_count = 0;
 
     InterpretResult result = run(vm);

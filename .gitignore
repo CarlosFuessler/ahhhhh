@@ -15,7 +15,14 @@ build/
 *.exe
 ahhhhh
 ahhhhh.exe
+ahhhh
+ahhhh.exe
 
 # Editor backups
 *.bak
 *~
+
+# C/C++ Tooling & IDEs
+.cache/
+.vscode/
+compile_commands.json

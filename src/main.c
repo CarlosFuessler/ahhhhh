@@ -1,3 +1,5 @@
+
+//code
 #include "compiler/compiler.h"
 #include "lexer/lexer.h"
 #include "lexer/token.h"
@@ -7,30 +9,40 @@
 #include "vm/vm.h"
 #include "vm/stdlib.h"
 
+//libs
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
 #include <ctype.h>
 
+//datei in den arbeitspeicher lesen                 // ** weil * ein zeiger auf zeichen ist nicht auf ide speicher adresse 
 static int maybe_read_source_file(const char *path, char **out_source) {
     *out_source = NULL;
+    // öffnen der datei im binären modus
     FILE *file = fopen(path, "rb");
+    //wenn der file leer ist dann 0
     if (file == NULL) return 0;
+
     if (fseek(file, 0, SEEK_END) != 0) { fclose(file); return -1; }
+    //größe der datei bestimmen
     long size = ftell(file);
     if (size < 0) { fclose(file); return -1; }
     if (fseek(file, 0, SEEK_SET) != 0) { fclose(file); return -1; }
+    //speicher reservieren nach größe der datei
     char *buffer = malloc((size_t)size + 1);
     if (buffer == NULL) { fclose(file); return -1; }
+    //einlesen der datei
     size_t nread = fread(buffer, 1, (size_t)size, file);
     if (nread != (size_t)size) { free(buffer); fclose(file); return -1; }
+    //als zeichenkette abschließen
     buffer[nread] = '\0';
     fclose(file);
     *out_source = buffer;
     return 1;
 }
 
+// fehler ausgabe für fehler bei analysieren und parsen
 static void print_parse_error(const char *label, const Token *errtok) {
     fprintf(stderr, "Parse error in %s at %d:%d: %s", label, errtok->line, errtok->col, token_type_name(errtok->type));
     if (errtok->type == TOKEN_IDENTIFIER || errtok->type == TOKEN_KEYWORD || errtok->type == TOKEN_STRING_LITERAL || errtok->type == TOKEN_ERROR) {
@@ -41,14 +53,16 @@ static void print_parse_error(const char *label, const Token *errtok) {
     fprintf(stderr, "\n");
 }
 
+// nimm quellcode und gibt tokenstream, AST , mögliche fehler
 static int parse_program_source(const char *source, TokenStream *out_stream, AstProgram *out_program, Token *out_errtok) {
     Lexer lexer = lexer_init(source);
     token_stream_init(out_stream, lexer);
     *out_program = (AstProgram){0};
     *out_errtok = (Token){0};
+    //rückgabe des überprüften und vallidierten syntaxbaum
     return ast_program_parse(out_stream, out_program, out_errtok);
 }
-
+//ordnerpfad aus dateipfad
 static char *dup_dirname(const char *path) {
     if (path == NULL) return NULL;
     const char *slash = strrchr(path, '/');
@@ -68,21 +82,22 @@ static char *dup_dirname(const char *path) {
     dir[len] = '\0';
     return dir;
 }
-
+//überprüft nach file extension
 static int has_ahhhh_extension(const char *path) {
     if (path == NULL) return 0;
     size_t len = strlen(path);
     return len >= 6 && strcmp(path + len - 6, ".ahhhh") == 0;
 }
 
+
 static int is_absolute_path(const char *path) {
     if (path == NULL) return 0;
     if (path[0] == '/' || path[0] == '\\') return 1;
-    // Check for Windows drive letter (e.g., C:\)
     if (strlen(path) >= 3 && isalpha((unsigned char)path[0]) && path[1] == ':' && (path[2] == '/' || path[2] == '\\')) return 1;
     return 0;
 }
 
+//versucht mögliche include datein zu laden
 static int try_load_include(const char *candidate, const char *input_dir, char **out_source) {
     int rc = maybe_read_source_file(candidate, out_source);
     if (rc < 0) return -1;
@@ -108,32 +123,36 @@ static int try_load_include(const char *candidate, const char *input_dir, char *
     return 1;
 }
 
-static int load_include(const char *include_path, const char *input_dir, char **out_source) {
-    *out_source = NULL;
-    int rc = try_load_include(include_path, input_dir, out_source);
-    if (rc <= 0) return rc;
-    if (has_ahhhh_extension(include_path)) return 1;
-    size_t len = strlen(include_path);
-    char *with_ext = malloc(len + 7);
-    memcpy(with_ext, include_path, len);
-    memcpy(with_ext + len, ".ahhhh", 7);
-    rc = try_load_include(with_ext, input_dir, out_source);
-    free(with_ext);
-    return rc;
-}
+//einbinden von include file
+    static int load_include(const char *include_path, const char *input_dir, char **out_source) {                              
+        *out_source = NULL;                                                                                                                                                                                                                                                                                                  
+        int rc = try_load_include(include_path, input_dir, out_source);                                                                                                
+        if (rc != 0) return rc;                                                                                                                                                                                                                           
+        if (!has_ahhhh_extension(include_path)) {
+            size_t len = strlen(include_path);
+            char *with_ext = malloc(len + 7);
+            memcpy(with_ext, include_path, len);
+            memcpy(with_ext + len, ".ahhhh", 7);
+            rc = try_load_include(with_ext, input_dir, out_source);
+            free(with_ext);
+            return rc;
+        }
+        return 0; 
+    }
 
+//liste
 typedef struct {
     char **sources;
     size_t count;
     size_t capacity;
 } SourceList;
-
+//liste inititialsieiren
 static void source_list_init(SourceList *list) {
     list->sources = NULL;
     list->count = 0;
     list->capacity = 0;
 }
-
+//liste beschreiben
 static void source_list_add(SourceList *list, char *source) {
     if (list->count >= list->capacity) {
         list->capacity = list->capacity < 8 ? 8 : list->capacity * 2;
@@ -142,6 +161,7 @@ static void source_list_add(SourceList *list, char *source) {
     list->sources[list->count++] = source;
 }
 
+//liste leeren
 static void source_list_free(SourceList *list) {
     for (size_t i = 0; i < list->count; i++) {
         free(list->sources[i]);
@@ -149,11 +169,12 @@ static void source_list_free(SourceList *list) {
     free(list->sources);
 }
 
+//verhindert das loopen von datein
 typedef struct IncludeStack {
     const char *path;
     struct IncludeStack *next;
 } IncludeStack;
-
+//veränderung von namen für ast
 static void rename_string_if_matches(char **str_ptr, const char *alias, char **decl_names, size_t decl_count) {
     if (str_ptr == NULL || *str_ptr == NULL) return;
     for (size_t i = 0; i < decl_count; i++) {
@@ -169,7 +190,7 @@ static void rename_string_if_matches(char **str_ptr, const char *alias, char **d
         }
     }
 }
-
+//veränderung von namen für ast
 static void rename_expression(AstExpression *expr, const char *alias, char **decl_names, size_t decl_count);
 
 static void rename_lvalue(AstLvalueExpression *lval, const char *alias, char **decl_names, size_t decl_count) {
@@ -338,14 +359,17 @@ static void rename_statement(AstStatement *stmt, const char *alias, char **decl_
     }
 }
 
+//führt den code von inclueds recursiv zusammen und fasst alles in eine kiste von anweisugen 
+
 static int flatten_ast(AstProgram *program, AstProgram *flat, const char *input_dir, SourceList *source_list, IncludeStack *stack, Token *errtok) {
+   
     for (size_t i = 0; i < program->len; i++) {
         AstStatement *stmt = &program->statements[i];
         if (stmt->kind == AST_STMT_ANNOTATION) {
             char *inc_src = NULL;
             const char *inc_path = stmt->stmt.annotation.value;
             
-            // Circular include detection
+            
             IncludeStack *curr = stack;
             while (curr != NULL) {
                 if (strcmp(curr->path, inc_path) == 0) {
@@ -362,7 +386,7 @@ static int flatten_ast(AstProgram *program, AstProgram *flat, const char *input_
                 if (parse_program_source(inc_src, &inc_stream, &inc_prog, errtok) == 0) {
                     if (stmt->stmt.annotation.alias != NULL) {
                         const char *alias = stmt->stmt.annotation.alias;
-                        // 1. Collect all top-level declaration names
+                        // 1. Alle Deklarationsnamen auf oberster Ebene sammeln
                         size_t decl_count = 0;
                         size_t decl_cap = 16;
                         char **decl_names = malloc(decl_cap * sizeof(char *));
@@ -385,12 +409,12 @@ static int flatten_ast(AstProgram *program, AstProgram *flat, const char *input_
                             }
                         }
 
-                        // 2. Recursively walk and rename all declarations and references
+                        // 2. Alle Deklarationen und Referenzen rekursiv durchlaufen und umbenennen
                         for (size_t j = 0; j < inc_prog.len; j++) {
                             rename_statement(&inc_prog.statements[j], alias, decl_names, decl_count);
                         }
 
-                        // 3. Free collected names
+                        // 3. Gesammelte Namen freigeben
                         for (size_t j = 0; j < decl_count; j++) {
                             free(decl_names[j]);
                         }
@@ -420,31 +444,89 @@ static int flatten_ast(AstProgram *program, AstProgram *flat, const char *input_
     }
     return 0;
 }
+//flags
+static void print_help(const char *executable_name) {
+    printf("ahhhh - The Systems-Inspired VM Programming Language\n\n");
+    printf("Usage:\n");
+    printf("  %s <file.ahhhh> [options]    Run a script file\n", executable_name);
+    printf("  %s \"<code>\" [options]        Run inline code directly\n\n", executable_name);
+    printf("Options:\n");
+    printf("  -h, --help                 Display this help menu\n");
+    printf("  -v, --version              Display version information\n");
+    printf("  -d, --debug                Enable VM instruction execution trace\n");
+    printf("  -s, --silent               Mute all stdout and stderr outputs\n");
+}
 
+static void print_version(void) {
+    printf("ahhhh version 1.0.0 (Release)\n");
+}
+
+
+
+// main
 int main(int argc, char **argv) {
-    if (argc < 2) { fprintf(stderr, "Usage: %s <code-or-path> [--debug]\n", argv[0]); return EXIT_FAILURE; }
+    // prüft flags beim programm start ahhhh main.ahhhh oder ahhhh --help
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s <code-or-path> [options]\n", argv[0]);
+        fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
+        return EXIT_FAILURE;
+    }
 
     int debug_mode = 0;
+    int silent_mode = 0;
     const char *input_path = NULL;
 
+    // argumente und flags
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--debug") == 0 || strcmp(argv[i], "-d") == 0) {
+        if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+            print_help(argv[0]);
+            return EXIT_SUCCESS;
+        } else if (strcmp(argv[i], "--version") == 0 || strcmp(argv[i], "-v") == 0) {
+            print_version();
+            return EXIT_SUCCESS;
+        } else if (strcmp(argv[i], "--debug") == 0 || strcmp(argv[i], "-d") == 0) {
             debug_mode = 1;
+        } else if (strcmp(argv[i], "--silent") == 0 || strcmp(argv[i], "-s") == 0) {
+            silent_mode = 1;
+        } else if (argv[i][0] == '-') {
+            // fehler für unbekannten optionen 
+            if (!silent_mode) {
+                fprintf(stderr, "Error: Unknown option '%s'\n", argv[i]);
+                fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
+            }
+            return EXIT_FAILURE;
         } else if (input_path == NULL) {
             input_path = argv[i];
         }
     }
 
+    // überprüfen nach file oder code
     if (input_path == NULL) {
-        fprintf(stderr, "Usage: %s <code-or-path> [--debug]\n", argv[0]);
+        if (!silent_mode) {
+            fprintf(stderr, "Error: No input code or file path provided.\n");
+            fprintf(stderr, "Usage: %s <code-or-path> [options]\n", argv[0]);
+        }
         return EXIT_FAILURE;
     }
 
+    // alle ausgaben stumm
+    if (silent_mode) {
+#ifdef _WIN32
+        (void)freopen("NUL", "w", stdout);
+        (void)freopen("NUL", "w", stderr);
+#else
+        (void)freopen("/dev/null", "w", stdout);
+        (void)freopen("/dev/null", "w", stderr);
+#endif
+    }
+
+    // liste von datein initialisieren
     SourceList source_list;
     source_list_init(&source_list);
 
     char *owned_source = NULL;
     const char *source = input_path;
+    // quellcode aus einer datei zu lesen
     int read_rc = maybe_read_source_file(input_path, &owned_source);
     if (read_rc < 0) { fprintf(stderr, "Failed to read input file: %s\n", input_path); return EXIT_FAILURE; }
     if (read_rc > 0) {
@@ -452,6 +534,7 @@ int main(int argc, char **argv) {
         source_list_add(&source_list, owned_source);
     }
 
+    // ordnerpfad der datei
     char *input_dir = NULL;
     if (read_rc > 0) input_dir = dup_dirname(input_path);
 
@@ -459,6 +542,7 @@ int main(int argc, char **argv) {
     AstProgram program = {0};
     Token errtok = {0};
 
+    // quelcode parsen und syntaxbuam erzeugen
     if (parse_program_source(source, &stream, &program, &errtok) < 0) {
         print_parse_error("input", &errtok);
         token_free(&errtok);
@@ -468,10 +552,12 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
+    // speicher reservieren
     AstProgram *flat = calloc(1, sizeof(AstProgram));
     flat->statements = NULL;
     flat->len = 0;
 
+    // dateien zusammenfügen
     IncludeStack base_stack = { .path = input_path, .next = NULL };
     if (flatten_ast(&program, flat, input_dir, &source_list, &base_stack, &errtok) != 0) {
         free(flat->statements);
@@ -481,9 +567,11 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
+    // compiler initialisieren
     Compiler compiler;
     compiler_init(&compiler, NULL);
 
+    // AST zu bytecode
     if (compiler_compile_ast(&compiler, flat)) {
         fprintf(stderr, "Compile error\n");
         compiler_free(&compiler);
@@ -494,18 +582,23 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
+    // bytecode chunk vom compiler holen
     Chunk *chunk = compiler_get_chunk(&compiler);
+    // chunk auseinanderlegen wenn debugmode
     if (debug_mode) {
         disassemble_chunk(chunk, "Main Chunk");
     }
     
+    // vm initialisieren
     VM vm;
     vm_init(&vm);
     vm_stdlib_init(&vm);
     vm.debug_trace = debug_mode;
     
+    // bytecode interpretieren
     InterpretResult result = vm_interpret(&vm, chunk);
     
+    // wenn die ausführung okay main ausführen
     if (result == INTERPRET_OK) {
         Value main_val;
         ObjString *main_name_obj = copy_string(&vm, "main", 4);
@@ -514,16 +607,19 @@ int main(int argc, char **argv) {
                 Chunk main_chunk;
                 chunk_init(&main_chunk);
                 
-                // Use a raw string for the constant, vm_interpret will intern it.
+                // string für main object
                 Value main_name_val = {VALUE_STRING, {.obj = (Obj*)"main"}};
+
                 int name_idx = chunk_add_constant(&main_chunk, main_name_val);
                 
+                // befehl schreiben um globale main funktion aufzurufen
                 chunk_write_byte(&main_chunk, OP_GET_GLOBAL, 0);
                 chunk_write_byte(&main_chunk, (uint8_t)name_idx, 0);
                 chunk_write_byte(&main_chunk, OP_CALL, 0);
                 chunk_write_byte(&main_chunk, 0, 0);
                 chunk_write_byte(&main_chunk, OP_RETURN, 0);
                 
+                // main funktion in der vm ausführen
                 InterpretResult main_result = vm_interpret(&vm, &main_chunk);
                 if (main_result != INTERPRET_OK) result = main_result;
                 chunk_free(&main_chunk);
@@ -531,7 +627,7 @@ int main(int argc, char **argv) {
         }
     }
     
-    // Cleanup
+    // bereinigung und speicher freigeben
     compiler_free(&compiler);
     free(flat->statements);
     free(flat);

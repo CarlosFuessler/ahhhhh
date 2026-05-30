@@ -15,11 +15,11 @@ jobs:
         target: [x86_64-linux, x86_64-windows, aarch64-macos]
         include:
           - target: x86_64-linux
-            output: ahhhhh
+            output: ahhhh
           - target: x86_64-windows
-            output: ahhhhh.exe
+            output: ahhhh.exe
           - target: aarch64-macos
-            output: ahhhhh
+            output: ahhhh
 
     steps:
       - uses: actions/checkout@v4
@@ -35,5 +35,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ahhhhh-${{ matrix.target }}
+          name: ahhhh-${{ matrix.target }}
           path: zig-out/bin/${{ matrix.output }}

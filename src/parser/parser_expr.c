@@ -262,7 +262,7 @@ static int parse_primary(TokenStream *tokens, AstExpression *node,
   }
 
   if (tok.type == TOKEN_OPEN_BRACKET) {
-    // scan ahead to decide if this is an array literal or a type identifier hack
+    // Vorausschauen, um zu entscheiden, ob dies ein Array-Literal oder ein Typbezeichner-Hack ist
     int is_type = 0;
     int depth = 0;
     for (size_t i = 0; ; i++) {
@@ -279,7 +279,7 @@ static int parse_primary(TokenStream *tokens, AstExpression *node,
           break;
         }
       } else if (p.type == TOKEN_COMMA && depth == 1) {
-        // commas at top level of brackets mean it's definitely an array literal
+        // Kommas auf oberster Ebene von Klammern bedeuten, dass es sich definitiv um ein Array-Literal handelt
         is_type = 0;
         break;
       }
@@ -337,7 +337,7 @@ static int parse_primary(TokenStream *tokens, AstExpression *node,
       node->expr.lvalue.expr.identifier = buffer_release(&buffer);
       return 0;
     } else {
-      token_stream_read(tokens); // consume [
+      token_stream_read(tokens); // [ konsumieren
       AstExpression *elements = NULL;
       char **names = NULL;
       size_t count = 0;

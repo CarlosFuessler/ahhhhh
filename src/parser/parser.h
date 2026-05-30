@@ -247,14 +247,14 @@ int ast_expression_parse(TokenStream *tokens, AstExpression *node, Token *errtok
 void ast_expression_free(AstExpression *node);
 void ast_expression_print(AstExpression *node, int depth, FILE *out);
 
-// hilfsfunktionen fuer print und free (in lowercase und german)
+// Hilfsfunktionen für Print und Free (in Kleinbuchstaben und Deutsch)
 void ast_lvalue_free(AstLvalueExpression *node);
 void ast_block_free(AstBlock *node);
 void ast_switch_clause_free(AstSwitchClause *clause);
 void ast_lvalue_print(AstLvalueExpression *node, int depth, FILE *out);
 void ast_block_print(AstBlock *node, int depth, FILE *out);
 
-// gemeinsame parser-hilfsfunktionen
+// Gemeinsame Parser-Hilfsfunktionen
 char *dup_cstr(const char *src);
 void set_static_error(Token *errtok, int line, int col, const char *message);
 void set_error_token(Token *errtok, Token tok);

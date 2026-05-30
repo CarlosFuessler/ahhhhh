@@ -2,7 +2,7 @@
 
 #include "stdlib.h"
 
-// token display names for debug output
+// Token-Anzeigenamen für die Debug-Ausgabe
 const char *token_type_names[TOKEN_COUNT] = {
     "string-literal",
     "number-literal",

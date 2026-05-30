@@ -1,7 +1,7 @@
 #ifndef TOKEN_H
 #define TOKEN_H
 
-// token kinds produced by the lexer
+// Vom Lexer erzeugte Token-Arten
 typedef enum {
   TOKEN_STRING_LITERAL,
   TOKEN_NUMBER_LITERAL,
@@ -40,10 +40,10 @@ typedef enum {
   TOKEN_COUNT
 } TokenType;
 
-// printable names for token kinds
+// Druckbare Namen für Token-Arten
 extern const char *token_type_names[TOKEN_COUNT];
 
-// one token with source location and payload
+// Ein Token mit Quellort und Nutzdaten
 typedef struct {
   TokenType type;
   int line;
@@ -54,9 +54,9 @@ typedef struct {
   } value;
 } Token;
 
-// free token-owned memory if needed
+// Speicher im Besitz des Tokens bei Bedarf freigeben
 void token_free(Token *token);
-// map token kind to display name
+// Token-Art dem Anzeigenamen zuordnen
 const char *token_type_name(TokenType type);
 
 #endif // TOKEN_H

@@ -7,13 +7,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-// Forward declarations
+// Vorwärtsdeklarationen
 struct VM;
 typedef struct VM VM;
 
 typedef struct Value Value;
 
-// Native function pointer type
+// Nativer Funktionszeigertyp
 typedef Value (*NativeFn)(VM *vm, int arg_count, Value *args);
 
 typedef struct Upvalue Upvalue;

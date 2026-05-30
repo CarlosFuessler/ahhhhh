@@ -88,7 +88,7 @@ int table_delete(Table *table, ObjString *key) {
     Entry *entry = find_entry(table->entries, table->capacity, key);
     if (entry->key == NULL) return 0;
 
-    // Place a tombstone in the entry.
+    // Einen Grabstein (Tombstone) in den Eintrag setzen.
     entry->key = NULL;
     entry->value = (Value){VALUE_BOOL, {.boolean = 1}};
     return 1;

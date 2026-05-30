@@ -21,19 +21,19 @@ typedef struct Type Type;
 
 struct Type {
     TypeKind kind;
-    const char *name; // For structs and primitives
+    const char *name; // Für Strukturen und Primitive
     
-    // For arrays
+    // Für Arrays
     struct Type *element_type;
     
-    // For structs
+    // Für Strukturen
     struct {
         char **names;
         struct Type **types;
         size_t count;
     } struct_info;
     
-    // For functions
+    // Für Funktionen
     struct {
         struct Type **params;
         size_t param_count;
@@ -41,7 +41,7 @@ struct Type {
     } fn_info;
 };
 
-// Type Registry / Table
+// Typregister / Tabelle
 typedef struct TypeTable {
     Type **types;
     size_t count;
@@ -53,7 +53,7 @@ void type_table_free(TypeTable *table);
 void type_table_register(TypeTable *table, Type *type);
 Type *type_table_find(TypeTable *table, const char *name);
 
-// Built-in types
+// Eingebaute Typen
 extern Type type_number;
 extern Type type_string;
 extern Type type_bool;
@@ -61,7 +61,7 @@ extern Type type_null;
 extern Type type_void;
 extern Type type_unknown;
 
-// Helpers
+// Hilfsfunktionen
 bool types_equal(Type *a, Type *b);
 Type *parse_type_name(TypeTable *table, const char *name);
 

@@ -16,7 +16,7 @@ void buffer_free(CharBuffer *buffer) {
 }
 
 int buffer_push(CharBuffer *buffer, char ch) {
-  // grow capacity when the next byte would overflow.
+  // Kapazität vergrößern, wenn das nächste Byte überlaufen würde.
   if (buffer->len + 1 > buffer->cap) {
     size_t next_cap = buffer->cap == 0 ? 16 : buffer->cap * 2;
     char *next = realloc(buffer->data, next_cap);

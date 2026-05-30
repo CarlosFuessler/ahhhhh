@@ -823,7 +823,7 @@ int vm_stdlib_init(VM *vm) {
     vm_define_native(vm, "draw_text", vm_native_draw_text);
     vm_define_native(vm, "window_close", vm_native_window_close);
     
-    // New Native Functions
+    // Neue native Funktionen
     vm_define_native(vm, "rand", vm_native_rand);
     vm_define_native(vm, "rand_range", vm_native_rand_range);
     vm_define_native(vm, "strlen", vm_native_strlen);
@@ -837,12 +837,12 @@ int vm_stdlib_init(VM *vm) {
     vm_define_native(vm, "array_contains", vm_native_array_contains);
     vm_define_native(vm, "array_reverse", vm_native_array_reverse);
     
-    // File I/O
+    // Datei-I/O
     vm_define_native(vm, "file_read", vm_native_file_read);
     vm_define_native(vm, "file_write", vm_native_file_write);
     vm_define_native(vm, "file_exists", vm_native_file_exists);
     
-    // Enhanced Raylib
+    // Erweitertes Raylib
     vm_define_native(vm, "draw_rectangle", vm_native_draw_rectangle);
     vm_define_native(vm, "draw_circle", vm_native_draw_circle);
     vm_define_native(vm, "draw_line", vm_native_draw_line);

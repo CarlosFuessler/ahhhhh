@@ -1,10 +1,10 @@
-# The ahhhhh Programming Language
+# The ahhhh Programming Language
 
 A systems-inspired language featuring a custom stack-based bytecode virtual machine, strict naming conventions, and an automated garbage collector.
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│  main.ahhhh ────────────────────────────────────────────────────────────── [ahhhhh VM] │
+│  main.ahhhh ────────────────────────────────────────────────────────────── [ahhhh VM]  │
 ├───────────────────────────────────────────────────────┬────────────────────────────────┤
 │  fn factorial(n: f64) f64 {                           │  VM EXECUTION STATE            │
 │      if n <= 1 { return 1 }                           ├────────────────────────────────┤
@@ -29,7 +29,7 @@ A systems-inspired language featuring a custom stack-based bytecode virtual mach
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │  Compiler Terminal                                                                     │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
-│  $ zig build && ./zig-out/bin/ahhhhh main.ahhhh                                        │
+│  $ zig build && ./zig-out/bin/ahhhh main.ahhhh                                         │
 │  [lexer]   Successfully tokenized 'main.ahhhh' into 28 tokens.                         │
 │  [parser]  Generated AST with 2 functions and 1 include.                               │
 │  [codegen] Generated 14 VM opcodes (constant table size: 4).                           │
@@ -43,7 +43,7 @@ A systems-inspired language featuring a custom stack-based bytecode virtual mach
 
 ## How the Language Works
 
-The ahhhhh compiler and runtime pipeline is designed for high efficiency. Source code is not interpreted directly; instead, it is compiled to stack-based bytecode and executed on a custom virtual machine.
+The ahhhh compiler and runtime pipeline is designed for high efficiency. Source code is not interpreted directly; instead, it is compiled to stack-based bytecode and executed on a custom virtual machine.
 
 ### 1. Lexical Analysis (Lexer)
 The lexer converts raw source code characters into a stream of tokens. It identifies keywords, identifier names, operators, and literals. Semicolons are optional, as the lexer dynamically resolves statement endings using newlines and braces.
@@ -156,10 +156,10 @@ zig build
 You can execute `.ahhhh` scripts or run code inline directly via the CLI:
 ```bash
 # Execute a script file
-./zig-out/bin/ahhhhh main.ahhhh
+./zig-out/bin/ahhhh main.ahhhh
 
 # Execute inline code
-./zig-out/bin/ahhhhh 'print("Hello, World!")'
+./zig-out/bin/ahhhh 'print("Hello, World!")'
 ```
 
 ---
@@ -169,7 +169,7 @@ The language integrates with graphics libraries through window and Raylib bindin
 
 ```ahhhh
 fn main() {
-    var win = window_create(800, 600, "ahhhhh Pong")
+    var win = window_create(800, 600, "ahhhh Pong")
     var ball_x = 400.0
     var ball_y = 300.0
     var ball_dx = 5.0

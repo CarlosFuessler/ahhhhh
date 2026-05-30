@@ -189,13 +189,13 @@ static Type *get_expression_type(Compiler *compiler, AstExpression *expr) {
                 elem_type = get_expression_type(compiler, &array->elements[0]);
             }
             
-            // Try to find if this array type already exists
+            // Versuchen herauszufinden, ob dieser Array-Typ bereits existiert
             char array_name[256];
             snprintf(array_name, sizeof(array_name), "[]%s", elem_type->name);
             Type *existing = type_table_find(compiler->type_table, array_name);
             if (existing) return existing;
 
-            // Create a temporary array type
+            // Temporären Array-Typ erstellen
             Type *arr_type = malloc(sizeof(Type));
             arr_type->kind = TYPE_ARRAY;
             arr_type->element_type = elem_type;
@@ -208,13 +208,13 @@ static Type *get_expression_type(Compiler *compiler, AstExpression *expr) {
         case AST_EXPR_FUNCTION_CALL: {
             AstFunctionCallExpression *call = &expr->expr.function_call;
 
-            // Check for namespaced method call or namespaced import function call
+            // Auf Namensraum-Methodenaufruf oder Namensraum-Importfunktionsaufruf prüfen
             if (call->function->kind == AST_EXPR_LVALUE &&
                 call->function->expr.lvalue.kind == AST_LVALUE_DOT) {
                 AstExpression *base = call->function->expr.lvalue.expr.dot.base;
                 const char *member = call->function->expr.lvalue.expr.dot.identifier;
                 
-                // Struct Method
+                // Strukturmethode
                 Type *base_type = get_expression_type(compiler, base);
                 if (base_type && base_type->kind == TYPE_STRUCT) {
                     char method_name[256];
@@ -223,7 +223,7 @@ static Type *get_expression_type(Compiler *compiler, AstExpression *expr) {
                     if (ft && ft->kind == TYPE_FUNCTION) return ft->fn_info.return_type;
                 }
                 
-                // Namespaced Import Call
+                // Namensraum-Importaufruf
                 if (base->kind == AST_EXPR_LVALUE && base->expr.lvalue.kind == AST_LVALUE_IDENTIFIER) {
                     const char *alias = base->expr.lvalue.expr.identifier;
                     if (resolve_local(compiler, alias) < 0) {
@@ -633,14 +633,14 @@ static int compile_expression(Compiler *compiler, AstExpression *expr) {
             AstExpression *base = call->function->expr.lvalue.expr.dot.base;
             const char *member = call->function->expr.lvalue.expr.dot.identifier;
             
-            // Check if base is a struct type for custom methods
+            // Prüfen, ob die Basis ein Strukturtyp für benutzerdefinierte Methoden ist
             Type *base_type = get_expression_type(compiler, base);
             if (base_type && base_type->kind == TYPE_STRUCT) {
                 char method_name[256];
                 snprintf(method_name, sizeof(method_name), "%s_%s", base_type->name, member);
                 int index = resolve_global(compiler, method_name);
                 
-                // Optional: typecheck method call parameters
+                // Optional: Typüberprüfung der Methodenaufrufparameter
                 Type *ft = type_table_find(compiler->type_table, method_name);
                 if (ft && ft->kind == TYPE_FUNCTION) {
                     if (ft->fn_info.param_count != call->arg_count + 1) {
@@ -676,7 +676,7 @@ static int compile_expression(Compiler *compiler, AstExpression *expr) {
                 return 0;
             }
             
-            // Check if base is a qualified module alias
+            // Prüfen, ob die Basis ein qualifizierter Modul-Alias ist
             if (base->kind == AST_EXPR_LVALUE && base->expr.lvalue.kind == AST_LVALUE_IDENTIFIER) {
                 const char *alias = base->expr.lvalue.expr.identifier;
                 if (resolve_local(compiler, alias) < 0) {
@@ -684,7 +684,7 @@ static int compile_expression(Compiler *compiler, AstExpression *expr) {
                     snprintf(namespaced_name, sizeof(namespaced_name), "%s_%s", alias, member);
                     int index = resolve_global(compiler, namespaced_name);
                     
-                    // Optional: typecheck namespaced function parameters
+                    // Optional: Typüberprüfung der Parameter von Funktionen mit Namensraum
                     Type *ft = type_table_find(compiler->type_table, namespaced_name);
                     if (ft && ft->kind == TYPE_FUNCTION) {
                         if (ft->fn_info.param_count != call->arg_count) {
@@ -768,7 +768,7 @@ static int compile_var_decl(Compiler *compiler, AstVarDeclStatement *decl) {
         add_local(compiler, decl->name, declared_type ? declared_type : init_type);
     } else {
         Type *final_type = declared_type ? declared_type : init_type;
-        // Register global variable type if not already registered by register_types
+        // Typ der globalen Variable registrieren, falls noch nicht durch register_types registriert
         Type *existing = type_table_find(compiler->type_table, decl->name);
         if (!existing || existing->kind != TYPE_VARIABLE) {
             Type *var_type = calloc(1, sizeof(Type));
@@ -777,7 +777,7 @@ static int compile_var_decl(Compiler *compiler, AstVarDeclStatement *decl) {
             var_type->element_type = final_type;
             type_table_register(compiler->type_table, var_type);
         } else {
-            // Update type if it was unknown or we now have a better one
+            // Typ aktualisieren, wenn er unbekannt war oder wir jetzt einen besseren haben
             existing->element_type = final_type;
         }
 

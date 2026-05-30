@@ -872,7 +872,7 @@ static int parse_annotation_stmt(TokenStream *tokens, AstStatement *node,
 
   Token next = token_stream_peek(tokens, 0);
   if (next.type == TOKEN_IDENTIFIER && next.value.string && strcmp(next.value.string, "as") == 0) {
-    token_stream_read(tokens); // consume "as"
+    token_stream_read(tokens); // "as" konsumieren
     Token alias_tok;
     if (expect_type(tokens, TOKEN_IDENTIFIER, &alias_tok, errtok) < 0) {
       free(node->stmt.annotation.value);
@@ -928,7 +928,7 @@ static int parse_fn_decl(TokenStream *tokens, AstStatement *node,
   name_tok = token_stream_read(tokens);
   char *name = NULL;
   if (token_stream_peek(tokens, 0).type == TOKEN_DOT) {
-    token_stream_read(tokens); // consume dot
+    token_stream_read(tokens); // Punkt konsumieren
     Token method_tok = token_stream_peek(tokens, 0);
     if (method_tok.type != TOKEN_IDENTIFIER) {
       set_error_token(errtok, method_tok);
