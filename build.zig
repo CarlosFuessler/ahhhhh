@@ -78,9 +78,9 @@ pub fn build(b: *std.Build) void {
     writeCompileCommands(b, &sources, use_raylib);
 
     const c_flags = if (use_raylib)
-        &[_][]const u8{ "-std=c99", "-DAHHHHH_HAS_RAYLIB=1" }
+        &[_][]const u8{ "-std=gnu99", "-DAHHHHH_HAS_RAYLIB=1" }
     else
-        &[_][]const u8{ "-std=c99", "-DAHHHHH_HAS_RAYLIB=0" };
+        &[_][]const u8{ "-std=gnu99", "-DAHHHHH_HAS_RAYLIB=0" };
 
     exe.addCSourceFiles(.{ .files = &sources, .flags = c_flags });
 
@@ -120,7 +120,7 @@ fn writeCompileCommands(b: *std.Build, sources: []const []const u8, use_raylib: 
         file.writeAll(file_line) catch return;
         
         // Command to run
-        const cmd_line = std.fmt.allocPrint(b.allocator, "    \"command\": \"clang -std=c99 {s} -I{s}/src -I/opt/homebrew/include -c {s}/{s}\"\n", .{
+        const cmd_line = std.fmt.allocPrint(b.allocator, "    \"command\": \"clang -std=gnu99 {s} -I{s}/src -I/opt/homebrew/include -c {s}/{s}\"\n", .{
             raylib_flag, cwd_path, cwd_path, src
         }) catch return;
         defer b.allocator.free(cmd_line);
