@@ -22,6 +22,7 @@ static double active_window_handle = 0.0;
 static int window_open = 0;
 static int frame_open = 0;
 
+// ansi
 static const char *color_code_for_symbol(const char *symbol) {
     if (strcmp(symbol, ".red") == 0) return "\x1b[31m";
     if (strcmp(symbol, ".green") == 0) return "\x1b[32m";
@@ -33,6 +34,7 @@ static const char *color_code_for_symbol(const char *symbol) {
     return NULL;
 }
 
+// formatiert und guibt werte aus
 static void print_value_internal(Value value) {
     if (IS_NUMBER(value)) printf("%.15g", AS_NUMBER(value));
     else if (IS_STRING(value)) printf("%s", AS_CSTRING(value));
@@ -57,6 +59,7 @@ static void print_value_internal(Value value) {
     }
 }
 
+// zeilenumnruch und farbe
 Value vm_native_log(VM *vm, int arg_count, Value *args) {
     (void)vm;
     const char *color = NULL;
@@ -83,6 +86,7 @@ Value vm_native_log(VM *vm, int arg_count, Value *args) {
     return (Value){VALUE_NULL, {0}};
 }
 
+// gibt werte ohne zeilenumbruch
 Value vm_native_print(VM *vm, int arg_count, Value *args) {
     (void)vm;
     const char *color = NULL;
@@ -106,6 +110,7 @@ Value vm_native_print(VM *vm, int arg_count, Value *args) {
     return (Value){VALUE_NULL, {0}};
 }
 
+// hilkfsfunktion fuer rechenarten
 static Value vm_native_add(VM *vm, int arg_count, Value *args) {
     (void)vm;
     if (arg_count < 2) return (Value){VALUE_NULL, {0}};
@@ -286,6 +291,7 @@ Value vm_native_input(VM *vm, int arg_count, Value *args) {
     return (Value){VALUE_STRING, {.obj = (Obj*)string}};
 }
 
+// fügt ein element am ende eines arrays hinzu (push)
 static Value vm_native_array_push(VM *vm, int arg_count, Value *args) {
     (void)vm;
     if (arg_count < 2 || !IS_ARRAY(args[0])) return (Value){VALUE_NULL, {0}};
@@ -301,6 +307,7 @@ static Value vm_native_array_push(VM *vm, int arg_count, Value *args) {
     return args[1];
 }
 
+// entfernt das letzte element aus einem array und gibt es zurück (pop)
 static Value vm_native_array_pop(VM *vm, int arg_count, Value *args) {
     (void)vm;
     if (arg_count < 1 || !IS_ARRAY(args[0])) return (Value){VALUE_NULL, {0}};
@@ -790,6 +797,7 @@ static Value vm_native_array_reverse(VM *vm, int arg_count, Value *args) {
     return (Value){VALUE_NULL, {0}};
 }
 
+// regstrierung von alklen funktionen in der vm
 int vm_stdlib_init(VM *vm) {
     vm_define_native(vm, "abs", vm_native_math_abs);
     vm_define_native(vm, "floor", vm_native_math_floor);
@@ -823,7 +831,7 @@ int vm_stdlib_init(VM *vm) {
     vm_define_native(vm, "draw_text", vm_native_draw_text);
     vm_define_native(vm, "window_close", vm_native_window_close);
     
-    // Neue native Funktionen
+    // native funktionen
     vm_define_native(vm, "rand", vm_native_rand);
     vm_define_native(vm, "rand_range", vm_native_rand_range);
     vm_define_native(vm, "strlen", vm_native_strlen);
@@ -837,12 +845,12 @@ int vm_stdlib_init(VM *vm) {
     vm_define_native(vm, "array_contains", vm_native_array_contains);
     vm_define_native(vm, "array_reverse", vm_native_array_reverse);
     
-    // Datei-I/O
+    // write and read
     vm_define_native(vm, "file_read", vm_native_file_read);
     vm_define_native(vm, "file_write", vm_native_file_write);
     vm_define_native(vm, "file_exists", vm_native_file_exists);
     
-    // Erweitertes Raylib
+    // raylib s
     vm_define_native(vm, "draw_rectangle", vm_native_draw_rectangle);
     vm_define_native(vm, "draw_circle", vm_native_draw_circle);
     vm_define_native(vm, "draw_line", vm_native_draw_line);

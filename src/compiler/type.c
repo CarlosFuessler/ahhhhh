@@ -15,7 +15,7 @@ void type_table_init(TypeTable *table) {
     table->count = 0;
     table->capacity = 0;
 
-    // Eingebaute Typen registrieren
+    // eingebaute registrieren
     type_table_register(table, &type_number);
     type_table_register(table, &type_string);
     type_table_register(table, &type_bool);
@@ -25,8 +25,7 @@ void type_table_init(TypeTable *table) {
 }
 
 void type_table_free(TypeTable *table) {
-    // Wir geben die eingebauten Typen nicht frei, da sie statisch sind.
-    // Wir sollten benutzerdefinierte Typen (Strukturen) freigeben.
+    // statische typen ignorieren, benutzerdefinierte freigeben
     for (size_t i = 0; i < table->count; i++) {
         Type *t = table->types[i];
         if (t == &type_number || t == &type_string || t == &type_bool || t == &type_null || t == &type_void || t == &type_unknown) {
@@ -53,13 +52,12 @@ void type_table_free(TypeTable *table) {
 void type_table_register(TypeTable *table, Type *type) {
     if (type == NULL || type->name == NULL) return;
     
-    // Auf Duplikate prüfen
+    // duplikate pruefen
     for (size_t i = 0; i < table->count; i++) {
         if (table->types[i]->name && strcmp(table->types[i]->name, type->name) == 0) {
-            // Bereits registriert, ersetzen falls es eine Variable oder Funktion ist (Unterstützung für Vorwärtsdeklarationen)
+            // vorwaertsdeklaration
             if (table->types[i]->kind == TYPE_VARIABLE || table->types[i]->kind == TYPE_FUNCTION) {
-                // Vorerst nur das erste behalten oder aktualisieren? 
-                // Besser aktualisieren, wenn das neue vollständiger ist.
+                // erstes behalten
                 return; 
             }
             return;
@@ -80,7 +78,7 @@ Type *type_table_find(TypeTable *table, const char *name) {
             return table->types[i];
         }
     }
-    // Aliase verarbeiten
+    // aliase verarbeiten
     if (strcmp(name, "u32") == 0 || strcmp(name, "i32") == 0 || strcmp(name, "u8") == 0 || strcmp(name, "f32") == 0) {
         return &type_number;
     }
@@ -106,11 +104,11 @@ bool types_equal(Type *a, Type *b) {
 Type *parse_type_name(TypeTable *table, const char *name) {
     if (name == NULL) return NULL;
 
-    // Prüfen, ob es bereits existiert
+    // existenz pruefen
     Type *existing = type_table_find(table, name);
     if (existing) return existing;
 
-    // Array-Typen wie [10]u8 oder []u32 verarbeiten
+    // array typen parsen
     if (name[0] == '[') {
         const char *closing = strchr(name, ']');
         if (closing) {

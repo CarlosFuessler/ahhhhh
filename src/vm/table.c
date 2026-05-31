@@ -3,17 +3,20 @@
 
 #define TABLE_MAX_LOAD 0.75
 
+// init eine leere hash-tabelle
 void table_init(Table *table) {
     table->count = 0;
     table->capacity = 0;
     table->entries = NULL;
 }
 
+// speicher frei geben
 void table_free(Table *table) {
     free(table->entries);
     table_init(table);
 }
 
+// sucht einen eintrag in einer tabelle 
 static Entry *find_entry(Entry *entries, int capacity, ObjString *key) {
     uint32_t index = key->hash % capacity;
     Entry *tombstone = NULL;
@@ -22,18 +25,22 @@ static Entry *find_entry(Entry *entries, int capacity, ObjString *key) {
         Entry *entry = &entries[index];
         if (entry->key == NULL) {
             if (entry->value.kind == VALUE_NULL) {
+                // leerer eintrag = tombstone
                 return tombstone != NULL ? tombstone : entry;
             } else {
+                // grabstein merken und weiter
                 if (tombstone == NULL) tombstone = entry;
             }
         } else if (entry->key == key) {
             return entry;
         }
 
+        // lineare sondierung 
         index = (index + 1) % capacity;
     }
 }
 
+// passt die kapazität der tabelle an und rehasht alle einträge
 static void adjust_capacity(Table *table, int capacity) {
     Entry *entries = malloc(sizeof(Entry) * capacity);
     for (int i = 0; i < capacity; i++) {
@@ -57,6 +64,7 @@ static void adjust_capacity(Table *table, int capacity) {
     table->capacity = capacity;
 }
 
+// fügt ein schlüsselwert paar ein
 int table_set(Table *table, ObjString *key, Value value) {
     if (table->count + 1 > table->capacity * TABLE_MAX_LOAD) {
         int capacity = table->capacity < 8 ? 8 : table->capacity * 2;
@@ -72,6 +80,7 @@ int table_set(Table *table, ObjString *key, Value value) {
     return is_new_key;
 }
 
+// holt den wert zu einem schlüssel aus der tabelle
 int table_get(Table *table, ObjString *key, Value *value) {
     if (table->count == 0) return 0;
 
@@ -82,6 +91,7 @@ int table_get(Table *table, ObjString *key, Value *value) {
     return 1;
 }
 
+// löscht einen schlüssel aus der tabelle
 int table_delete(Table *table, ObjString *key) {
     if (table->count == 0) return 0;
 
@@ -94,6 +104,7 @@ int table_delete(Table *table, ObjString *key) {
     return 1;
 }
 
+// kopiert einträge
 void table_add_all(Table *from, Table *to) {
     for (int i = 0; i < from->capacity; i++) {
         Entry *entry = &from->entries[i];
@@ -103,6 +114,7 @@ void table_add_all(Table *from, Table *to) {
     }
 }
 
+// sucht eine zeichenkette in der tabelle
 ObjString *table_find_string(Table *table, const char *chars, int length, uint32_t hash) {
     if (table->count == 0) return NULL;
 

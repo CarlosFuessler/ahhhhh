@@ -12,56 +12,66 @@
 #define NATIVE_FUNCS_MAX 128
 #define FRAMES_MAX 64
 
+// der stack der virtuellen für dei berechnung
 typedef struct {
     Value stack[STACK_MAX];
-    Value *stack_top;
+    Value *stack_top;   
 } Stack;
 
+// globale variable
 typedef struct {
     Table table;
 } Globals;
 
+// aktiven funktionsaufruf
 typedef struct {
-    ObjFunction *function;
-    uint8_t *ip;
-    Value *slots;
-    int local_count;
+    ObjFunction *function; 
+    uint8_t *ip;           
+    Value *slots;          
+    int local_count;       
 } CallFrame;
 
+
 typedef struct {
-    const char *name;
-    NativeFn fn;
+    const char *name;    
+    NativeFn fn;     
 } NativeFunc;
 
+// vm
 struct VM {
-    Stack stack;
-    Globals globals;
-    CallFrame frames[FRAMES_MAX];
-    int frame_count;
+    Stack stack;                         
+    Globals globals;                     
+    CallFrame frames[FRAMES_MAX];        
+    int frame_count;                     
     NativeFunc natives[NATIVE_FUNCS_MAX];
-    int native_count;
-    
-    Table strings;
-    Obj *objects;
+    int native_count;                        
+    Table strings;                      
+    Obj *objects;                       
 
-    int debug_trace;
-    int gc_suspend;
+    int debug_trace;                     
+    int gc_suspend;                     
 };
 
+// ergebnis
 typedef enum {
-    INTERPRET_OK,
-    INTERPRET_COMPILE_ERROR,
-    INTERPRET_RUNTIME_ERROR,
+    INTERPRET_OK,            
+    INTERPRET_COMPILE_ERROR,  
+    INTERPRET_RUNTIME_ERROR,  
 } InterpretResult;
 
 void vm_init(VM *vm);
 void vm_free(VM *vm);
 
+// führt den bytecode in einem chunk aus
 InterpretResult vm_interpret(VM *vm, Chunk *chunk);
+
+// hilfsfunktionen zum definieren von variablen und funktionen in der vm
 int vm_define_global(VM *vm, const char *name, Value value);
 int vm_define_native(VM *vm, const char *name, NativeFn fn);
 NativeFn vm_lookup_native(VM *vm, const char *name);
 
+// string und array ertsllung
 ObjString *copy_string(VM *vm, const char *chars, int length);
 ObjArray *new_array(VM *vm, size_t count);
+
 #endif

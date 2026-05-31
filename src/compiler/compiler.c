@@ -10,16 +10,29 @@
 #include <stdlib.h>
 #include <string.h>
 
+// byte schreiben
 static void emit_byte(Compiler *compiler, uint8_t byte, int line) { chunk_write_byte(compiler->function->chunk, byte, line); (void)line; }
+
+// opcode schreiben
 static void emit_opcode(Compiler *compiler, Opcode opcode, int line) { chunk_write_opcode(compiler->function->chunk, opcode, line); (void)line; }
+
+// konstante schreiben
 static void emit_constant(Compiler *compiler, Value value, int line) { 
     int index = chunk_add_constant(compiler->function->chunk, value);
     chunk_write_byte(compiler->function->chunk, OP_CONSTANT, line);
     chunk_write_byte(compiler->function->chunk, (uint8_t)index, line); 
 }
+
+// vorwaertssprung schreiben
 static size_t emit_jump(Compiler *compiler, Opcode opcode, int line) { return chunk_write_jump(compiler->function->chunk, opcode, line); }
+
+// vorwaertssprung patchen
 static void patch_jump(Compiler *compiler, size_t offset) { chunk_patch_jump(compiler->function->chunk, offset); }
+
+// rueckwaertssprung schreiben
 static size_t emit_loop(Compiler *compiler, int line) { return chunk_write_loop(compiler->function->chunk, line); }
+
+// rueckwaertssprung patchen
 static void patch_loop(Compiler *compiler, size_t offset, size_t loop_start) { chunk_patch_loop(compiler->function->chunk, offset, loop_start); }
 
 static int compile_expression(Compiler *compiler, AstExpression *expr);
@@ -39,6 +52,7 @@ typedef struct Loop {
     struct Loop *enclosing;
 } Loop;
 
+// schleife starten
 static void start_loop(Compiler *compiler, Loop *loop, size_t start) {
     loop->start = start;
     loop->breaks = NULL;
@@ -51,6 +65,7 @@ static void start_loop(Compiler *compiler, Loop *loop, size_t start) {
     compiler->current_loop = loop;
 }
 
+// schleife beenden
 static void end_loop(Compiler *compiler, size_t continue_target) {
     Loop *loop = (Loop *)compiler->current_loop;
     if (loop->breaks) {
@@ -68,6 +83,7 @@ static void end_loop(Compiler *compiler, size_t continue_target) {
     compiler->current_loop = loop->enclosing;
 }
 
+// break kompilieren
 static int compile_break(Compiler *compiler) {
     if (compiler->current_loop == NULL) {
         fprintf(stderr, "Error: 'br' outside of loop\n");
@@ -83,6 +99,7 @@ static int compile_break(Compiler *compiler) {
     return 0;
 }
 
+// continue kompilieren
 static int compile_continue(Compiler *compiler) {
     if (compiler->current_loop == NULL) {
         fprintf(stderr, "Error: 'fw' outside of loop\n");
@@ -98,6 +115,7 @@ static int compile_continue(Compiler *compiler) {
     return 0;
 }
 
+// print kompilieren
 static int compile_print(Compiler *compiler, AstExpression *fn_expr, AstExpression *args, size_t arg_count) {
     size_t i;
     for (i = 0; i < arg_count; i++) {
@@ -109,6 +127,7 @@ static int compile_print(Compiler *compiler, AstExpression *fn_expr, AstExpressi
     return 0;
 }
 
+// literal kompilieren
 static int compile_literal(Compiler *compiler, AstLiteralExpression *literal) {
     switch (literal->kind) {
     case AST_LITERAL_NUMBER: emit_constant(compiler, (Value){VALUE_NUMBER, {.number = literal->expr.number.val}}, 0); break;
@@ -120,6 +139,7 @@ static int compile_literal(Compiler *compiler, AstLiteralExpression *literal) {
     return 0;
 }
 
+// lokale variable aufloesen
 static int resolve_local(Compiler *compiler, const char *name) {
     if (name == NULL) return -1;
     for (int i = compiler->local_count - 1; i >= 0; i--) {
@@ -133,10 +153,12 @@ static int resolve_local(Compiler *compiler, const char *name) {
     return -1;
 }
 
+// scope beginnen
 static void begin_scope(Compiler *compiler) {
     compiler->scope_depth++;
 }
 
+// scope beenden
 static void end_scope(Compiler *compiler) {
     compiler->scope_depth--;
     while (compiler->local_count > 0 &&
@@ -146,6 +168,7 @@ static void end_scope(Compiler *compiler) {
     }
 }
 
+// ausdruckstyp holen
 static Type *get_expression_type(Compiler *compiler, AstExpression *expr) {
     if (!expr) return &type_unknown;
     switch (expr->kind) {
@@ -189,13 +212,13 @@ static Type *get_expression_type(Compiler *compiler, AstExpression *expr) {
                 elem_type = get_expression_type(compiler, &array->elements[0]);
             }
             
-            // Versuchen herauszufinden, ob dieser Array-Typ bereits existiert
+            // existenz pruefen
             char array_name[256];
             snprintf(array_name, sizeof(array_name), "[]%s", elem_type->name);
             Type *existing = type_table_find(compiler->type_table, array_name);
             if (existing) return existing;
 
-            // Temporären Array-Typ erstellen
+            // typ erstellen
             Type *arr_type = malloc(sizeof(Type));
             arr_type->kind = TYPE_ARRAY;
             arr_type->element_type = elem_type;
@@ -208,13 +231,13 @@ static Type *get_expression_type(Compiler *compiler, AstExpression *expr) {
         case AST_EXPR_FUNCTION_CALL: {
             AstFunctionCallExpression *call = &expr->expr.function_call;
 
-            // Auf Namensraum-Methodenaufruf oder Namensraum-Importfunktionsaufruf prüfen
+            // dot-zugriff pruefen
             if (call->function->kind == AST_EXPR_LVALUE &&
                 call->function->expr.lvalue.kind == AST_LVALUE_DOT) {
                 AstExpression *base = call->function->expr.lvalue.expr.dot.base;
                 const char *member = call->function->expr.lvalue.expr.dot.identifier;
                 
-                // Strukturmethode
+                // strukturmethode
                 Type *base_type = get_expression_type(compiler, base);
                 if (base_type && base_type->kind == TYPE_STRUCT) {
                     char method_name[256];
@@ -223,7 +246,7 @@ static Type *get_expression_type(Compiler *compiler, AstExpression *expr) {
                     if (ft && ft->kind == TYPE_FUNCTION) return ft->fn_info.return_type;
                 }
                 
-                // Namensraum-Importaufruf
+                // namensraum import
                 if (base->kind == AST_EXPR_LVALUE && base->expr.lvalue.kind == AST_LVALUE_IDENTIFIER) {
                     const char *alias = base->expr.lvalue.expr.identifier;
                     if (resolve_local(compiler, alias) < 0) {
@@ -274,6 +297,7 @@ static Type *get_expression_type(Compiler *compiler, AstExpression *expr) {
     }
 }
 
+// lokale variable hinzufuegen
 static int add_local(Compiler *compiler, const char *name, Type *type) {
     if (compiler->local_count >= 1024) return -1;
     Local *local = &compiler->locals[compiler->local_count++];
@@ -284,6 +308,7 @@ static int add_local(Compiler *compiler, const char *name, Type *type) {
     return compiler->local_count - 1;
 }
 
+// globale variable aufloesen
 static int resolve_global(Compiler *compiler, const char *name) {
     if (name == NULL) return -1;
     for (int i = 0; i < compiler->function->chunk->constants.count; i++) {
@@ -298,6 +323,7 @@ static int resolve_global(Compiler *compiler, const char *name) {
     return index;
 }
 
+// lvalue kompilieren
 static int compile_lvalue(Compiler *compiler, AstLvalueExpression *lvalue) {
     switch (lvalue->kind) {
     case AST_LVALUE_IDENTIFIER: {
@@ -337,7 +363,7 @@ static int compile_lvalue(Compiler *compiler, AstLvalueExpression *lvalue) {
         Type *base_type = get_expression_type(compiler, lvalue->expr.dot.base);
         if (base_type != &type_unknown && base_type->kind != TYPE_STRUCT) {
             if ((base_type->kind == TYPE_ARRAY || base_type->kind == TYPE_STRING) && strcmp(lvalue->expr.dot.identifier, "len") == 0) {
-                // OK
+                // ok
             } else {
                 fprintf(stderr, "Type error: cannot access property %s of non-struct type %s\n", lvalue->expr.dot.identifier, base_type->name);
                 return 1;
@@ -383,6 +409,7 @@ static int compile_lvalue(Compiler *compiler, AstLvalueExpression *lvalue) {
     return 0;
 }
 
+// binaeren ausdruck kompilieren
 static int compile_binary(Compiler *compiler, AstBinaryExpression *binary) {
     Type *left_type = get_expression_type(compiler, binary->left);
     Type *right_type = get_expression_type(compiler, binary->right);
@@ -390,9 +417,9 @@ static int compile_binary(Compiler *compiler, AstBinaryExpression *binary) {
     if (left_type != &type_unknown && right_type != &type_unknown) {
         if (binary->op == TOKEN_PLUS) {
             if (types_equal(left_type, &type_number) && types_equal(right_type, &type_number)) {
-                // OK
+                // ok
             } else if (types_equal(left_type, &type_string) && types_equal(right_type, &type_string)) {
-                // OK
+                // ok
             } else {
                 fprintf(stderr, "Type error: invalid operands for + (%s and %s)\n", left_type->name, right_type->name);
                 return 1;
@@ -454,6 +481,7 @@ static int compile_binary(Compiler *compiler, AstBinaryExpression *binary) {
     return 0;
 }
 
+// unaeren ausdruck kompilieren
 static int compile_unary(Compiler *compiler, AstUnaryExpression *unary) {
     Type *operand_type = get_expression_type(compiler, unary->operand);
     if (operand_type != &type_unknown) {
@@ -475,6 +503,7 @@ static int compile_unary(Compiler *compiler, AstUnaryExpression *unary) {
     return 0;
 }
 
+// lvalue-typ holen
 static Type *get_lvalue_type(Compiler *compiler, AstLvalueExpression *lvalue) {
     if (!lvalue) return &type_unknown;
     switch (lvalue->kind) {
@@ -538,6 +567,7 @@ static Type *get_lvalue_type(Compiler *compiler, AstLvalueExpression *lvalue) {
     return &type_unknown;
 }
 
+// ausdruck kompilieren
 static int compile_expression(Compiler *compiler, AstExpression *expr) {
     if (!expr) return 0;
     switch (expr->kind) {
@@ -633,14 +663,14 @@ static int compile_expression(Compiler *compiler, AstExpression *expr) {
             AstExpression *base = call->function->expr.lvalue.expr.dot.base;
             const char *member = call->function->expr.lvalue.expr.dot.identifier;
             
-            // Prüfen, ob die Basis ein Strukturtyp für benutzerdefinierte Methoden ist
+            // strukturmethode pruefen
             Type *base_type = get_expression_type(compiler, base);
             if (base_type && base_type->kind == TYPE_STRUCT) {
                 char method_name[256];
                 snprintf(method_name, sizeof(method_name), "%s_%s", base_type->name, member);
                 int index = resolve_global(compiler, method_name);
                 
-                // Optional: Typüberprüfung der Methodenaufrufparameter
+                // parameter typen pruefen
                 Type *ft = type_table_find(compiler->type_table, method_name);
                 if (ft && ft->kind == TYPE_FUNCTION) {
                     if (ft->fn_info.param_count != call->arg_count + 1) {
@@ -676,7 +706,7 @@ static int compile_expression(Compiler *compiler, AstExpression *expr) {
                 return 0;
             }
             
-            // Prüfen, ob die Basis ein qualifizierter Modul-Alias ist
+            // modul alias pruefen
             if (base->kind == AST_EXPR_LVALUE && base->expr.lvalue.kind == AST_LVALUE_IDENTIFIER) {
                 const char *alias = base->expr.lvalue.expr.identifier;
                 if (resolve_local(compiler, alias) < 0) {
@@ -684,7 +714,7 @@ static int compile_expression(Compiler *compiler, AstExpression *expr) {
                     snprintf(namespaced_name, sizeof(namespaced_name), "%s_%s", alias, member);
                     int index = resolve_global(compiler, namespaced_name);
                     
-                    // Optional: Typüberprüfung der Parameter von Funktionen mit Namensraum
+                    // parameter typen pruefen
                     Type *ft = type_table_find(compiler->type_table, namespaced_name);
                     if (ft && ft->kind == TYPE_FUNCTION) {
                         if (ft->fn_info.param_count != call->arg_count) {
@@ -745,6 +775,7 @@ static int compile_expression(Compiler *compiler, AstExpression *expr) {
     }
 }
 
+// variablendeklaration kompilieren
 static int compile_var_decl(Compiler *compiler, AstVarDeclStatement *decl) {
     Type *declared_type = NULL;
     if (decl->type_name) {
@@ -768,7 +799,7 @@ static int compile_var_decl(Compiler *compiler, AstVarDeclStatement *decl) {
         add_local(compiler, decl->name, declared_type ? declared_type : init_type);
     } else {
         Type *final_type = declared_type ? declared_type : init_type;
-        // Typ der globalen Variable registrieren, falls noch nicht durch register_types registriert
+        // globale variable typ registrieren
         Type *existing = type_table_find(compiler->type_table, decl->name);
         if (!existing || existing->kind != TYPE_VARIABLE) {
             Type *var_type = calloc(1, sizeof(Type));
@@ -777,7 +808,7 @@ static int compile_var_decl(Compiler *compiler, AstVarDeclStatement *decl) {
             var_type->element_type = final_type;
             type_table_register(compiler->type_table, var_type);
         } else {
-            // Typ aktualisieren, wenn er unbekannt war oder wir jetzt einen besseren haben
+            // typ aktualisieren
             existing->element_type = final_type;
         }
 
@@ -788,6 +819,7 @@ static int compile_var_decl(Compiler *compiler, AstVarDeclStatement *decl) {
     return 0;
 }
 
+// return kompilieren
 static int compile_return(Compiler *compiler, AstReturnStatement *ret) {
     Type *actual_type = ret->value ? get_expression_type(compiler, ret->value) : &type_void;
     if (compiler->return_type != &type_unknown && !types_equal(compiler->return_type, actual_type)) {
@@ -804,6 +836,7 @@ static int compile_return(Compiler *compiler, AstReturnStatement *ret) {
     return 0;
 }
 
+// block kompilieren
 static int compile_block(Compiler *compiler, AstBlock *block) {
     begin_scope(compiler);
     for (size_t i = 0; i < block->len; i++) {
@@ -813,6 +846,7 @@ static int compile_block(Compiler *compiler, AstBlock *block) {
     return 0;
 }
 
+// if-anweisung kompilieren
 static int compile_if(Compiler *compiler, AstIfStatement *if_stmt) {
     if (compile_expression(compiler, if_stmt->condition)) return 1;
     size_t else_offset = emit_jump(compiler, OP_JUMP_IF_FALSE, 0);
@@ -828,6 +862,7 @@ static int compile_if(Compiler *compiler, AstIfStatement *if_stmt) {
     return 0;
 }
 
+// while-schleife kompilieren
 static int compile_while(Compiler *compiler, AstWhileStatement *while_stmt) {
     size_t loop_start = compiler->function->chunk->count;
     if (compile_expression(compiler, while_stmt->condition)) return 1;
@@ -842,6 +877,7 @@ static int compile_while(Compiler *compiler, AstWhileStatement *while_stmt) {
     return 0;
 }
 
+// for-range-schleife kompilieren
 static int compile_for_range(Compiler *compiler, AstForRangeStatement *for_stmt) {
     int loop_var_index = resolve_global(compiler, for_stmt->name);
     if (compile_expression(compiler, for_stmt->start)) return 1;
@@ -875,6 +911,7 @@ static int compile_for_range(Compiler *compiler, AstForRangeStatement *for_stmt)
     return 0;
 }
 
+// funktion kompilieren
 static int compile_fn_decl(Compiler *compiler, AstFnDeclStatement *decl) {
     int index = resolve_global(compiler, decl->name);
     Compiler sub_compiler;
@@ -908,6 +945,7 @@ static int compile_fn_decl(Compiler *compiler, AstFnDeclStatement *decl) {
     return 0;
 }
 
+// switch kompilieren
 static int compile_switch(Compiler *compiler, AstSwitchStatement *sw) {
     if (compile_expression(compiler, sw->subject)) return 1;
     size_t *end_jumps = malloc(sizeof(size_t) * sw->clause_count);
@@ -940,6 +978,7 @@ static int compile_switch(Compiler *compiler, AstSwitchStatement *sw) {
     return 0;
 }
 
+// anweisung kompilieren
 static int compile_statement(Compiler *compiler, AstStatement *stmt) {
     switch (stmt->kind) {
     case AST_STMT_VAR_DECL:  return compile_var_decl(compiler, &stmt->stmt.var_decl);
@@ -963,6 +1002,7 @@ static int compile_statement(Compiler *compiler, AstStatement *stmt) {
     }
 }
 
+// compiler initialisieren
 void compiler_init(Compiler *compiler, Compiler *enclosing) {
     compiler->enclosing = enclosing;
     compiler->function = malloc(sizeof(ObjFunction));
@@ -993,6 +1033,7 @@ void compiler_init(Compiler *compiler, Compiler *enclosing) {
     compiler->current_loop = NULL;
 }
 
+// compiler freigeben
 void compiler_free(Compiler *compiler) {
     if (compiler->enclosing == NULL) {
         type_table_free(compiler->type_table);
@@ -1000,6 +1041,7 @@ void compiler_free(Compiler *compiler) {
     }
 }
 
+// quelltext kompilieren
 int compiler_compile(Compiler *compiler, const char *source) {
     TokenStream tokens;
     token_stream_init(&tokens, lexer_init(source));
@@ -1015,6 +1057,7 @@ int compiler_compile(Compiler *compiler, const char *source) {
     return result;
 }
 
+// typen registrieren
 static void register_types(Compiler *compiler, AstProgram *program) {
     for (size_t i = 0; i < program->len; i++) {
         AstStatement *stmt = &program->statements[i];
@@ -1061,6 +1104,7 @@ static void register_types(Compiler *compiler, AstProgram *program) {
     }
 }
 
+// ast kompilieren
 int compiler_compile_ast(Compiler *compiler, AstProgram *program) {
     register_types(compiler, program);
     size_t i;
@@ -1072,6 +1116,7 @@ int compiler_compile_ast(Compiler *compiler, AstProgram *program) {
     return 0;
 }
 
+// chunk holen
 Chunk *compiler_get_chunk(Compiler *compiler) {
     return compiler->function->chunk;
 }

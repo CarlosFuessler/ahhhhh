@@ -4,17 +4,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+// initialisiert ein wert-array (z.B. für konstanten)
 void value_array_init(ValueArray *array) {
     array->values = NULL;
     array->capacity = 0;
     array->count = 0;
 }
 
+// gibt den speicher eines wert-arrays wieder frei
 void value_array_free(ValueArray *array) {
     free(array->values);
     value_array_init(array);
 }
 
+// fügt einen wert an das wert-array an und vergrößert es falls nötig
 void value_array_write(ValueArray *array, Value value) {
     if (array->count + 1 > array->capacity) {
         size_t new_capacity = array->capacity < 8 ? 8 : array->capacity * 2;
@@ -24,6 +27,7 @@ void value_array_write(ValueArray *array, Value value) {
     array->values[array->count++] = value;
 }
 
+// initialisiert einen neuen bytecode-chunk
 void chunk_init(Chunk *chunk) {
     chunk->code = NULL;
     chunk->capacity = 0;
@@ -35,6 +39,7 @@ void chunk_init(Chunk *chunk) {
     chunk->is_interned = 0;
 }
 
+// gibt den gesamten speicher eines chunks frei
 void chunk_free(Chunk *chunk) {
     free(chunk->code);
     value_array_free(&chunk->constants);
@@ -43,11 +48,13 @@ void chunk_free(Chunk *chunk) {
     chunk_init(chunk);
 }
 
+// schreibt einen befehl (opcode) in den chunk
 void chunk_write_opcode(Chunk *chunk, Opcode opcode, int line) {
     chunk_write_byte(chunk, (uint8_t)opcode, line);
     (void)line;
 }
 
+// schreibt ein einzelnes byte in den bytecode
 void chunk_write_byte(Chunk *chunk, uint8_t byte, int line) {
     (void)line;
     if (chunk->count + 1 > chunk->capacity) {
@@ -58,11 +65,13 @@ void chunk_write_byte(Chunk *chunk, uint8_t byte, int line) {
     chunk->code[chunk->count++] = byte;
 }
 
+// schreibt zwei bytes (einen 16-bit short-wert) in den bytecode
 void chunk_write_short(Chunk *chunk, uint16_t value, int line) {
     chunk_write_byte(chunk, (value >> 8) & 0xFF, line);
     chunk_write_byte(chunk, value & 0xFF, line);
 }
 
+// schreibt eine konstante in den chunk (befehl + index der konstante)
 void chunk_write_constant(Chunk *chunk, Value value, int line) {
     int index = chunk_add_constant(chunk, value);
     if (index > 255) {
@@ -73,35 +82,41 @@ void chunk_write_constant(Chunk *chunk, Value value, int line) {
     chunk_write_byte(chunk, (uint8_t)index, line);
 }
 
+// fügt dem konstanten-pool eine neue konstante hinzu und liefert deren index zurück
 int chunk_add_constant(Chunk *chunk, Value value) {
     value_array_write(&chunk->constants, value);
     return (int)(chunk->constants.count - 1);
 }
 
+// schreibt einen sprungbefehl mit platzhalter (wird später gepatcht)
 size_t chunk_write_jump(Chunk *chunk, Opcode opcode, int line) {
     chunk_write_opcode(chunk, opcode, line);
     chunk_write_short(chunk, 0xFFFF, line);
     return chunk->count - 2;
 }
 
+// patcht einen sprungbefehl mit der korrekten ziel-distanz
 void chunk_patch_jump(Chunk *chunk, size_t offset) {
     uint16_t jump = (uint16_t)(chunk->count - (offset + 2));
     chunk->code[offset] = (jump >> 8) & 0xFF;
     chunk->code[offset + 1] = jump & 0xFF;
 }
 
+// schreibt einen rückwärtssprung für schleifen
 size_t chunk_write_loop(Chunk *chunk, int line) {
     chunk_write_opcode(chunk, OP_LOOP, line);
     chunk_write_short(chunk, 0, line);
     return chunk->count - 2;
 }
 
+// patcht den rückwärtssprung mit der distanz zum schleifenanfang
 void chunk_patch_loop(Chunk *chunk, size_t offset, size_t loop_start) {
     uint16_t jump = (uint16_t)((offset + 2) - loop_start);
     chunk->code[offset] = (jump >> 8) & 0xFF;
     chunk->code[offset + 1] = jump & 0xFF;
 }
 
+// fügt einen funktionsnamen zum chunk hinzu (für dynamische methodenaufrufe)
 int chunk_add_function_name(Chunk *chunk, const char *name) {
     if (chunk->function_name_count >= 256) {
         fprintf(stderr, "Too many function names\n");
@@ -128,6 +143,7 @@ int chunk_add_function_name(Chunk *chunk, const char *name) {
     return (int)(chunk->function_name_count++);
 }
 
+// disassembliert einen gesamten bytecode-chunk und gibt ihn aus
 void disassemble_chunk(Chunk *chunk, const char *name) {
     printf("== %s ==\n", name);
     for (int offset = 0; offset < (int)chunk->count;) {

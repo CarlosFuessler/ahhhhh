@@ -20,6 +20,7 @@ static void reset_stack(VM *vm) {
     vm->frame_count = 0;
 }
 
+// initialisiert die vm
 void vm_init(VM *vm) {
     memset(vm, 0, sizeof(VM));
     reset_stack(vm);
@@ -28,7 +29,7 @@ void vm_init(VM *vm) {
     vm->objects = NULL;
     vm->gc_suspend = 0;
 }
-
+//befreit den speicher von obj
 static void free_obj(Obj *obj) {
     switch (obj->type) {
         case OBJ_STRING: {
@@ -75,7 +76,7 @@ static void free_obj(Obj *obj) {
         }
     }
 }
-
+//befreit vm
 void vm_free(VM *vm) {
     reset_stack(vm);
     table_free(&vm->strings);
@@ -89,6 +90,7 @@ void vm_free(VM *vm) {
     }
 }
 
+// legt einen wert oben auf den stack
 static void push(VM *vm, Value value) {
     if (vm->stack.stack_top - vm->stack.stack >= STACK_MAX) { 
         fprintf(stderr, "Stack overflow\n"); 
@@ -97,14 +99,16 @@ static void push(VM *vm, Value value) {
     *vm->stack.stack_top++ = value;
 }
 
+// nimmt den obersten wert vom stack
 static Value pop(VM *vm) { 
     return *--vm->stack.stack_top; 
 }
 
+// wirft einen blick auf den obersten wert
 static Value peek(VM *vm) { 
     return vm->stack.stack_top[-1]; 
 }
-
+//blick uaf bestimmten wert
 static Value peek_n(VM *vm, int n) {
     return vm->stack.stack_top[-1 - n];
 }
@@ -114,7 +118,7 @@ static int is_true(Value value) {
     if (IS_BOOL(value)) return AS_BOOL(value);
     return 1;
 }
-
+//hashing
 static uint32_t hash_string(const char *key, int length) {
     uint32_t hash = 2166136261u;
     for (int i = 0; i < length; i++) {
@@ -123,7 +127,7 @@ static uint32_t hash_string(const char *key, int length) {
     }
     return hash;
 }
-
+//speicher fuer objekt legen
 static Obj *allocate_obj(VM *vm, size_t size, ObjType type) {
 #ifdef DEBUG_STRESS_GC
     if (vm->gc_suspend <= 0) collect_garbage(vm);
@@ -252,7 +256,7 @@ static void mark_object(Obj *obj) {
     switch (obj->type) {
         case OBJ_FUNCTION: {
             ObjFunction *fn = (ObjFunction *)obj;
-            // Konstanten nur markieren, wenn der Chunk interniert wurde.
+            // Konstanten nur markieren nur wenn interniert
             if (fn->chunk && fn->chunk->is_interned) {
                 for (int i = 0; i < fn->chunk->constants.count; i++) {
                     mark_value(fn->chunk->constants.values[i]);
@@ -289,11 +293,16 @@ static void mark_object(Obj *obj) {
     }
 }
 
+// automatische speicherbereinigung
 static void collect_garbage(VM *vm) {
     if (vm->gc_suspend > 0) return;
+    
+    // alle werte auf dem stack als erreichbar markieren
     for (Value *slot = vm->stack.stack; slot < vm->stack.stack_top; slot++) {
         mark_value(*slot);
     }
+    
+    // alle globalen variablen markieren
     for (int i = 0; i < vm->globals.table.capacity; i++) {
         Entry *entry = &vm->globals.table.entries[i];
         if (entry->key != NULL) {
@@ -301,10 +310,13 @@ static void collect_garbage(VM *vm) {
             mark_value(entry->value);
         }
     }
+    
+    // alle funktionen im callstack
     for (int i = 0; i < vm->frame_count; i++) {
         mark_object((Obj*)vm->frames[i].function);
     }
     
+    // alle nicht markierten objekte freigeben
     Obj **prev = &vm->objects;
     while (*prev != NULL) {
         if (!(*prev)->is_marked) {
@@ -333,113 +345,30 @@ static void debug_trace_step(VM *vm, CallFrame *frame) {
     disassemble_instruction(frame->function->chunk, (int)(frame->ip - frame->function->chunk->code));
 }
 
+// butecode ausfuehren dispatcher
 static InterpretResult run(VM *vm) {
     CallFrame *frame = current_frame(vm);
     
 #define READ_BYTE() (*frame->ip++)
 #define READ_SHORT() (frame->ip += 2, (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1]))
 
-// Schalter zum Aktivieren/Deaktivieren von Computed Gotos.
-// 
-// HINWEIS: Auf modernem Apple Silicon (ARM64) und Clang 15+ ist der native
-// switch-case Sprungtabellen-Optimierer ist extrem fortschrittlich. Ein einzelner zentraler
-// switch-Zweig wird von der Branch Target der Hardware deutlich besser vorhergesagt
-// Puffer (BTB) als die mehr als 45 separaten indirekten Sprünge, die durch Computed Gotos entstehen.
-// Auf CPUs der M-Serie ist die standardmäßige Switch-Schleife daher in der Praxis schneller.
-// 
-// Die folgende Zeile einkommentieren, um Computed Gotos zu aktivieren:
-// #define AHHHHH_USE_COMPUTED_GOTOS
-
-#if defined(__GNUC__) && defined(AHHHHH_USE_COMPUTED_GOTOS)
-    static void* dispatch_table[] = {
-        &&LABEL_OP_CONSTANT,
-        &&LABEL_OP_NULL,
-        &&LABEL_OP_TRUE,
-        &&LABEL_OP_FALSE,
-        &&LABEL_OP_LOAD_GLOBAL,
-        &&LABEL_OP_STORE_GLOBAL,
-        &&LABEL_OP_LOAD_LOCAL,
-        &&LABEL_OP_STORE_LOCAL,
-        &&LABEL_OP_ADD,
-        &&LABEL_OP_SUB,
-        &&LABEL_OP_MUL,
-        &&LABEL_OP_DIV,
-        &&LABEL_OP_MOD,
-        &&LABEL_OP_EQ,
-        &&LABEL_OP_NE,
-        &&LABEL_OP_LT,
-        &&LABEL_OP_GT,
-        &&LABEL_OP_LE,
-        &&LABEL_OP_GE,
-        &&LABEL_OP_NOT,
-        &&LABEL_OP_NEG,
-        &&LABEL_OP_PRINT,
-        &&LABEL_OP_JUMP,
-        &&LABEL_OP_JUMP_IF_FALSE,
-        &&LABEL_OP_LOOP,
-        &&LABEL_OP_CALL,
-        &&LABEL_OP_RETURN,
-        &&LABEL_OP_CLOSURE,
-        &&LABEL_OP_CLOSE_UPVALUE,
-        &&LABEL_OP_GET_GLOBAL,
-        &&LABEL_OP_DEFINE_GLOBAL,
-        &&LABEL_OP_INDEX_GET,
-        &&LABEL_OP_INDEX_SET,
-        &&LABEL_OP_GET_FIELD,
-        &&LABEL_OP_SET_FIELD,
-        &&LABEL_OP_ARRAY,
-        &&LABEL_OP_ARRAY_GET,
-        &&LABEL_OP_ARRAY_SET,
-        &&LABEL_OP_ARRAY_LEN,
-        &&LABEL_OP_STRUCT,
-        &&LABEL_OP_TYPE,
-        &&LABEL_OP_POP,
-        &&LABEL_OP_DUP,
-        &&LABEL_OP_BREAK,
-        &&LABEL_OP_CONTINUE
-    };
-
-    #define DISPATCH() \
-        do { \
-            if (vm->debug_trace) debug_trace_step(vm, frame); \
-            goto *dispatch_table[READ_BYTE()]; \
-        } while (0)
-
-    #define CASE_CODE(op) LABEL_##op
-    #define BREAK_CODE() DISPATCH()
-#else
-    #define CASE_CODE(op) case op
-    #define BREAK_CODE() break
-#endif
-    
-#if defined(__GNUC__) && defined(AHHHHH_USE_COMPUTED_GOTOS)
-    DISPATCH();
-#else
     for (;;) {
         if (vm->debug_trace) {
-            printf("          ");
-            for (Value *slot = vm->stack.stack; slot < vm->stack.stack_top; slot++) {
-                printf("[ ");
-                print_value(*slot);
-                printf(" ]");
-            }
-            printf("\n");
-            disassemble_instruction(frame->function->chunk, (int)(frame->ip - frame->function->chunk->code));
+            debug_trace_step(vm, frame);
         }
 
         uint8_t opcode = READ_BYTE();
         switch (opcode) {
-#endif
-            CASE_CODE(OP_CONSTANT): {
+            case OP_CONSTANT: {
                 uint8_t idx = READ_BYTE();
                 push(vm, frame->function->chunk->constants.values[idx]);
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_NULL):  push(vm, (Value){VALUE_NULL, {0}}); BREAK_CODE();
-            CASE_CODE(OP_TRUE):  push(vm, (Value){VALUE_BOOL, {.boolean = 1}}); BREAK_CODE();
-            CASE_CODE(OP_FALSE): push(vm, (Value){VALUE_BOOL, {.boolean = 0}}); BREAK_CODE();
+            case OP_NULL:  push(vm, (Value){VALUE_NULL, {0}}); break;
+            case OP_TRUE:  push(vm, (Value){VALUE_BOOL, {.boolean = 1}}); break;
+            case OP_FALSE: push(vm, (Value){VALUE_BOOL, {.boolean = 0}}); break;
 
-            CASE_CODE(OP_ADD): {
+            case OP_ADD: {
                 Value b = pop(vm), a = pop(vm);
                 if (IS_STRING(a) && IS_STRING(b)) {
                     size_t len_a = strlen(AS_CSTRING(a));
@@ -455,68 +384,68 @@ static InterpretResult run(VM *vm) {
                     fprintf(stderr, "Runtime error: invalid operands for +\n");
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_SUB): {
+            case OP_SUB: {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_NUMBER, {.number = AS_NUMBER(a) - AS_NUMBER(b)}});
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_MUL): {
+            case OP_MUL: {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_NUMBER, {.number = AS_NUMBER(a) * AS_NUMBER(b)}});
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_DIV): {
+            case OP_DIV: {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_NUMBER, {.number = AS_NUMBER(a) / AS_NUMBER(b)}});
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_MOD): {
+            case OP_MOD: {
                 Value b = pop(vm), a = pop(vm);
                 if (AS_NUMBER(b) == 0) {
                     fprintf(stderr, "Runtime error: modulo by zero\n");
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 push(vm, (Value){VALUE_NUMBER, {.number = fmod(AS_NUMBER(a), AS_NUMBER(b))}});
-                BREAK_CODE();
+                break;
             }
 
-            CASE_CODE(OP_EQ): {
+            case OP_EQ: {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_BOOL, {.boolean = values_equal(a, b)}});
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_NE): {
+            case OP_NE: {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_BOOL, {.boolean = !values_equal(a, b)}});
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_LT): {
+            case OP_LT: {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_BOOL, {.boolean = AS_NUMBER(a) < AS_NUMBER(b)}});
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_GT): {
+            case OP_GT: {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_BOOL, {.boolean = AS_NUMBER(a) > AS_NUMBER(b)}});
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_LE): {
+            case OP_LE: {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_BOOL, {.boolean = AS_NUMBER(a) <= AS_NUMBER(b)}});
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_GE): {
+            case OP_GE: {
                 Value b = pop(vm), a = pop(vm);
                 push(vm, (Value){VALUE_BOOL, {.boolean = AS_NUMBER(a) >= AS_NUMBER(b)}});
-                BREAK_CODE();
+                break;
             }
 
-            CASE_CODE(OP_NOT): push(vm, (Value){VALUE_BOOL, {.boolean = !is_true(pop(vm))}}); BREAK_CODE();
-            CASE_CODE(OP_NEG): push(vm, (Value){VALUE_NUMBER, {.number = -AS_NUMBER(pop(vm))}}); BREAK_CODE();
+            case OP_NOT: push(vm, (Value){VALUE_BOOL, {.boolean = !is_true(pop(vm))}}); break;
+            case OP_NEG: push(vm, (Value){VALUE_NUMBER, {.number = -AS_NUMBER(pop(vm))}}); break;
 
-            CASE_CODE(OP_PRINT): {
+            case OP_PRINT: {
                 uint8_t arg_count = READ_BYTE();
                 Value args[8];
                 for (int i = 0; i < arg_count; i++) args[i] = pop(vm);
@@ -526,10 +455,10 @@ static InterpretResult run(VM *vm) {
                     args[arg_count - 1 - i] = temp;
                 }
                 vm_native_print(vm, arg_count, args);
-                BREAK_CODE();
+                break;
             }
 
-            CASE_CODE(OP_GET_GLOBAL): {
+            case OP_GET_GLOBAL: {
                 uint8_t index = READ_BYTE();
                 Value name_val = frame->function->chunk->constants.values[index];
                 ObjString *name = (ObjString*)AS_OBJ(name_val);
@@ -539,17 +468,17 @@ static InterpretResult run(VM *vm) {
                 } else {
                     push(vm, (Value){VALUE_NULL, {0}});
                 }
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_DEFINE_GLOBAL): {
+            case OP_DEFINE_GLOBAL: {
                 uint8_t index = READ_BYTE();
                 Value name_val = frame->function->chunk->constants.values[index];
                 ObjString *name = (ObjString*)AS_OBJ(name_val);
                 Value value = pop(vm);
                 table_set(&vm->globals.table, name, value);
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_STORE_GLOBAL): {
+            case OP_STORE_GLOBAL: {
                 uint8_t index = READ_BYTE();
                 Value name_val = frame->function->chunk->constants.values[index];
                 ObjString *name = (ObjString*)AS_OBJ(name_val);
@@ -559,21 +488,21 @@ static InterpretResult run(VM *vm) {
                     fprintf(stderr, "Undefined variable '%s'.\n", name->chars);
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                BREAK_CODE();
+                break;
             }
 
-            CASE_CODE(OP_LOAD_LOCAL): {
+            case OP_LOAD_LOCAL: {
                 uint8_t index = READ_BYTE();
                 push(vm, frame->slots[index]);
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_STORE_LOCAL): {
+            case OP_STORE_LOCAL: {
                 uint8_t index = READ_BYTE();
                 frame->slots[index] = peek(vm);
-                BREAK_CODE();
+                break;
             }
 
-            CASE_CODE(OP_GET_FIELD): {
+            case OP_GET_FIELD: {
                 uint8_t name_index = READ_BYTE();
                 Value name_val = frame->function->chunk->constants.values[name_index];
                 ObjString *name = (ObjString*)AS_OBJ(name_val);
@@ -581,12 +510,12 @@ static InterpretResult run(VM *vm) {
                 
                 if (IS_ARRAY(object_val) && strcmp(name->chars, "len") == 0) {
                     push(vm, (Value){VALUE_NUMBER, {.number = (double)((ObjArray*)AS_OBJ(object_val))->count}});
-                    BREAK_CODE();
+                    break;
                 }
                 
                 if (IS_STRING(object_val) && strcmp(name->chars, "len") == 0) {
                     push(vm, (Value){VALUE_NUMBER, {.number = (double)strlen(AS_CSTRING(object_val))}});
-                    BREAK_CODE();
+                    break;
                 }
                 
                 if (!IS_OBJECT(object_val)) {
@@ -601,9 +530,9 @@ static InterpretResult run(VM *vm) {
                 } else {
                     push(vm, (Value){VALUE_NULL, {0}});
                 }
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_SET_FIELD): {
+            case OP_SET_FIELD: {
                 uint8_t name_index = READ_BYTE();
                 Value name_val = frame->function->chunk->constants.values[name_index];
                 ObjString *name = (ObjString*)AS_OBJ(name_val);
@@ -617,11 +546,11 @@ static InterpretResult run(VM *vm) {
                 
                 ObjObject *obj = AS_OBJ_STRUCT(object_val);
                 table_set(obj->fields, name, value);
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_STRUCT): {
+            case OP_STRUCT: {
                 uint8_t field_count = READ_BYTE();
-                // Feldnamen zuerst lesen, um sie im Bytecode zu überspringen
+                // feldnamen zuerst lesen um sie im bytecode zu überspringen
                 uint8_t name_indices[256];
                 for (int i = 0; i < field_count; i++) {
                     name_indices[i] = READ_BYTE();
@@ -631,7 +560,7 @@ static InterpretResult run(VM *vm) {
                 obj->fields = malloc(sizeof(Table));
                 table_init(obj->fields);
                 
-                // Werte vom Stack holen und Namen zuweisen
+                // werte vom Stack holen und namen zuweisen
                 for (int i = field_count - 1; i >= 0; i--) {
                     Value value = pop(vm);
                     uint8_t name_index = name_indices[i];
@@ -640,10 +569,10 @@ static InterpretResult run(VM *vm) {
                     table_set(obj->fields, name, value);
                 }
                 push(vm, (Value){VALUE_OBJECT, {.obj = (Obj*)obj}});
-                BREAK_CODE();
+                break;
             }
 
-            CASE_CODE(OP_ARRAY): {
+            case OP_ARRAY: {
                 uint8_t count = READ_BYTE();
                 ObjArray *array = (ObjArray *)allocate_obj(vm, sizeof(ObjArray), OBJ_ARRAY);
                 array->count = count;
@@ -656,10 +585,10 @@ static InterpretResult run(VM *vm) {
                     }
                 }
                 push(vm, (Value){VALUE_ARRAY, {.obj = (Obj*)array}});
-                BREAK_CODE();
+                break;
             }
 
-            CASE_CODE(OP_INDEX_GET): {
+            case OP_INDEX_GET: {
                 Value index_val = pop(vm);
                 Value base_val = pop(vm);
 
@@ -693,9 +622,9 @@ static InterpretResult run(VM *vm) {
                     fprintf(stderr, "Runtime error: only strings and arrays can be indexed.\n");
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_INDEX_SET): {
+            case OP_INDEX_SET: {
                 Value index_val = pop(vm);
                 Value base_val = pop(vm);
                 Value value = peek(vm);
@@ -716,37 +645,37 @@ static InterpretResult run(VM *vm) {
                     fprintf(stderr, "Runtime error: only arrays can be index-set.\n");
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                BREAK_CODE();
+                break;
             }
 
-            CASE_CODE(OP_JUMP): {
+            case OP_JUMP: {
                 uint16_t offset = READ_SHORT();
                 frame->ip += offset;
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_JUMP_IF_FALSE): {
+            case OP_JUMP_IF_FALSE: {
                 uint16_t offset = READ_SHORT();
                 if (!is_true(pop(vm))) frame->ip += offset;
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_LOOP): {
+            case OP_LOOP: {
                 uint16_t offset = READ_SHORT();
                 frame->ip -= offset;
-                BREAK_CODE();
+                break;
             }
-            CASE_CODE(OP_POP): pop(vm); BREAK_CODE();
-            CASE_CODE(OP_DUP): push(vm, peek(vm)); BREAK_CODE();
+            case OP_POP: pop(vm); break;
+            case OP_DUP: push(vm, peek(vm)); break;
 
-            CASE_CODE(OP_CALL): {
+            case OP_CALL: {
                 uint8_t arg_count = READ_BYTE();
                 if (!call_value(vm, peek_n(vm, arg_count), arg_count)) {
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 frame = current_frame(vm);
-                BREAK_CODE();
+                break;
             }
 
-            CASE_CODE(OP_RETURN): {
+            case OP_RETURN: {
                 Value result = pop(vm);
                 vm->frame_count--;
                 if (vm->frame_count == 0) {
@@ -757,38 +686,34 @@ static InterpretResult run(VM *vm) {
                 vm->stack.stack_top = frame->slots - 1;
                 push(vm, result);
                 frame = current_frame(vm);
-                BREAK_CODE();
+                break;
             }
 
-            CASE_CODE(OP_CLOSURE): {
+            case OP_CLOSURE: {
                 Value function_val = pop(vm);
                 ObjFunction *function = AS_FUNCTION(function_val);
                 ObjClosure *closure = (ObjClosure *)allocate_obj(vm, sizeof(ObjClosure), OBJ_CLOSURE);
                 closure->function = function;
                 push(vm, (Value){VALUE_OBJECT, {.obj = (Obj*)closure}});
-                BREAK_CODE();
+                break;
             }
 
-#if defined(__GNUC__) && defined(AHHHHH_USE_COMPUTED_GOTOS)
-        LABEL_OP_LOAD_GLOBAL:
-        LABEL_OP_CLOSE_UPVALUE:
-        LABEL_OP_ARRAY_GET:
-        LABEL_OP_ARRAY_SET:
-        LABEL_OP_ARRAY_LEN:
-        LABEL_OP_TYPE:
-        LABEL_OP_BREAK:
-        LABEL_OP_CONTINUE:
-            fprintf(stderr, "Unhandled opcode\n");
-            return INTERPRET_RUNTIME_ERROR;
-#endif
+            case OP_LOAD_GLOBAL:
+            case OP_CLOSE_UPVALUE:
+            case OP_ARRAY_GET:
+            case OP_ARRAY_SET:
+            case OP_ARRAY_LEN:
+            case OP_TYPE:
+            case OP_BREAK:
+            case OP_CONTINUE:
+                fprintf(stderr, "Unhandled opcode\n");
+                return INTERPRET_RUNTIME_ERROR;
 
-#if !defined(__GNUC__) || !defined(AHHHHH_USE_COMPUTED_GOTOS)
             default:
                 fprintf(stderr, "Unknown opcode %d\n", opcode);
                 return INTERPRET_RUNTIME_ERROR;
         }
     }
-#endif
     
 #undef READ_BYTE
 #undef READ_SHORT
@@ -823,7 +748,6 @@ static void intern_constants(VM *vm, Chunk *chunk) {
 }
 
 InterpretResult vm_interpret(VM *vm, Chunk *chunk) {
-    // Wrap Chunk in eine temporäre Funktion, um seine Konstanten während der Internierung zu verankern
     ObjFunction *temp_fn = (ObjFunction *)allocate_obj(vm, sizeof(ObjFunction), OBJ_FUNCTION);
     temp_fn->chunk = chunk;
     temp_fn->arity = 0;

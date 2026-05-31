@@ -6,15 +6,17 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+// ein eintrag in der hash-tabelle
 typedef struct {
-    ObjString *key;
-    Value value;
+    ObjString *key;     
+    Value value;         
 } Entry;
 
+// hash-tabellen
 struct Table {
-    int count;
-    int capacity;
-    Entry *entries;
+    int count;           
+    int capacity;        
+    Entry *entries;     
 };
 
 void table_init(Table *table);

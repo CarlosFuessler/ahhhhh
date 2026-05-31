@@ -18,7 +18,6 @@ pub fn build(b: *std.Build) void {
     } else blk: {
         break :blk b.addExecutable(.{
             .name = "ahhhh",
-            .root_source_file = b.path("src/main.c"),
             .target = target,
             .optimize = optimize,
         });
