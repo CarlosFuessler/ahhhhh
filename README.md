@@ -7,7 +7,7 @@ A systems-inspired language featuring a custom stack-based bytecode virtual mach
 ## Quick Start
 
 ### 1. Build the Runtime
-To compile the compiler and VM, ensure you have **Zig 0.13.0** installed, then run:
+To compile the compiler and VM, ensure you have Zig 0.13.0 installed, then run:
 ```bash
 zig build
 ```
@@ -27,14 +27,14 @@ Execute `.ahhhh` scripts or run inline code directly:
 ## Syntax Overview
 
 ### Variables & Constants
-```ahhhh
+```go
 var x = 1.0            // inferred as f64
 const y: string = "hi" // explicit type
 var active: bool = true
 ```
 
 ### Functions
-```ahhhh
+```go
 fn add(a: f64, b: f64) f64 {
     return a + b
 }
@@ -45,7 +45,7 @@ fn greet(name: string) {
 ```
 
 ### Control Flow
-```ahhhh
+```go
 if x > 0 {
     print("positive")
 } else {
@@ -65,7 +65,7 @@ while x < 100 {
 ```
 
 ### Structs & Arrays
-```ahhhh
+```go
 // custom structures
 struct Point {
     x: f64,
@@ -81,7 +81,7 @@ print(arr.len) // array length
 ```
 
 ### File Includes
-```ahhhh
+```go
 @(math_utils.ahhhh) // imports another script
 ```
 
@@ -90,7 +90,7 @@ print(arr.len) // array length
 ## Under the Hood
 
 The `ahhhh` compilation and execution pipeline consists of:
-1. **Lexer & Parser:** Converts source text to a stream of tokens, and constructs an Abstract Syntax Tree (AST).
-2. **Type Checker:** Enforces static semantic and type analysis (snake_case for variables/functions, PascalCase for structs).
-3. **Bytecode Compiler:** Generates linear bytecode instructions (e.g., `OP_ADD`, `OP_CALL`) and patches jump offsets.
-4. **Stack VM:** Executes instructions on a custom runtime stack, backed by an integrated **Mark-and-Sweep Garbage Collector** that automatically reclaims heap-allocated resources (strings, arrays, structs).
+1. Lexer & Parser:** Converts source text to a stream of tokens, and constructs an Abstract Syntax Tree (AST).
+2. Type Checker: Enforces static semantic and type analysis (snake_case for variables/functions, PascalCase for structs).
+3. Bytecode Compiler: Generates linear bytecode instructions (e.g., `OP_ADD`, `OP_CALL`) and patches jump offsets.
+4. Stack VM: Executes instructions on a custom runtime stack, backed by an integrated Mark-and-Sweep Garbage Collector that automatically reclaims heap-allocated resources (strings, arrays, structs).
