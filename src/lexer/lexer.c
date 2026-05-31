@@ -6,14 +6,12 @@
 #include "stdlib.h"
 #include "string.h"
 
-// Schlüsselwörter in der Sprache
 static const char *keywords[] = {
-    "enum", "struct", "fn",   "export",  "var",  "const", "return", "if",
-    "else", "switch", "case", "default", "for",  "in",    "while",  "br",
-    "fw",   "mk",     "rm",   "self",    "true", "false", "null",   "and",
-    "or",   NULL};
+    "enum",  "struct", "fn",     "export", "var",     "const", "return",
+    "if",    "else",   "switch", "case",   "default", "for",   "in",
+    "while", "br",     "fw",     "mk",     "rm",      "self",  "true",
+    "false", "null",   "and",    "or",     NULL};
 
-// Prüfen, ob ein Bezeichner ein Schlüsselwort ist
 int is_keyword(const char *str) {
   for (int i = 0; keywords[i] != NULL; i++) {
     if (strcmp(str, keywords[i]) == 0) {
@@ -58,7 +56,6 @@ int lexer_next(Lexer *lexer) {
     return EOF;
   }
 
-  // Position vorrücken und Quellkoordinaten aktualisieren
   lexer->pos += 1;
   if (ch == '\n') {
     lexer->line += 1;
@@ -87,7 +84,8 @@ static bool skip_whitespace_and_comments(Lexer *lexer) {
   bool skipped_newline = false;
   int peek;
 
-  // Leerzeichen und Zeilenkommentare konsumieren
+  // comments and things like spaces aor tabs are whitespace
+  // and have no use to us, so we skip those
   while (true) {
     while (true) {
       peek = lexer_peek(lexer);
@@ -101,12 +99,11 @@ static bool skip_whitespace_and_comments(Lexer *lexer) {
     }
 
     peek = lexer_peek(lexer);
-    // Auf // Kommentare prüfen.
     if (peek == '/') {
       lexer_next(lexer);
       int next = lexer_peek(lexer);
       if (next == '/') {
-        // Bis zur neuen Zeile konsumieren.
+        // found a comment, so now skipping until EOL
         lexer_next(lexer);
         while (true) {
           peek = lexer_peek(lexer);
@@ -121,7 +118,7 @@ static bool skip_whitespace_and_comments(Lexer *lexer) {
           lexer_next(lexer);
         }
       } else {
-        // Kein Kommentar, den / durch Zurückspulen wieder zurücklegen
+        // we've got no comment, go back to the slash
         lexer->pos -= 1;
         if (lexer->col > 0) {
           lexer->col -= 1;
@@ -137,7 +134,6 @@ static bool skip_whitespace_and_comments(Lexer *lexer) {
 }
 
 static bool parse_number(const char *str, double *num) {
-  // Nur dann als Zahl parsen, wenn die gesamte Zeichenkette ein gültiges Zahlenliteral ist
   char *end = NULL;
   *num = strtod(str, &end);
   if (end != NULL && *end == '\0') {
@@ -151,7 +147,6 @@ Token tokenize_next(Lexer *lexer) {
     return make_token(TOKEN_NEWLINE, lexer->line, lexer->col);
   }
 
-  // Erstes Zeichen lesen und nach Token-Form verzweigen
   int ch = lexer_next(lexer);
   int line = lexer->line;
   int col = lexer->col;
@@ -223,7 +218,6 @@ Token tokenize_next(Lexer *lexer) {
     break;
   }
 
-  // Zahlenliteral parsen (mit optionalem Dezimalpunkt)
   if (is_digit(ch)) {
     CharBuffer buffer;
     buffer_init(&buffer);
@@ -277,7 +271,6 @@ Token tokenize_next(Lexer *lexer) {
     return token;
   }
 
-  // String-Literal parsen
   if (ch == '"') {
     CharBuffer buffer;
     buffer_init(&buffer);
@@ -332,7 +325,6 @@ Token tokenize_next(Lexer *lexer) {
 
   CharBuffer buffer;
   buffer_init(&buffer);
-  // Eine Sequenz erfassen, die entweder Bezeichnertext oder ein Zahlenliteral ist
   if (buffer_push(&buffer, (char)ch) < 0) {
     buffer_free(&buffer);
     return make_error_token(line, col, "Out of memory");
@@ -360,7 +352,6 @@ Token tokenize_next(Lexer *lexer) {
     return token;
   }
 
-  // Prüfen, ob der Bezeichner ein Schlüsselwort ist
   if (is_keyword(str)) {
     if (strcmp(str, "and") == 0) {
       Token token = make_token(TOKEN_AND, line, col);

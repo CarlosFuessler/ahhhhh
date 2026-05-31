@@ -6,20 +6,20 @@ fn main() {
     print("abs(-42) = ", abs(-42))
     print("pow(2, 10) = ", pow(2, 10))
     print("ln(exp(1)) = ", ln(exp(1)))
-    
+
     log("\n--- Test von included funktionen ---", .yellow)
     greet("John")
-    
+
     var n: f64 = 5
     print("factorial(", n, ") = ", factorial(n), .magenta)
-    
+
     var x: f64 = 10
     if is_even(x) {
         print(x, " gerade", .green)
     } else {
         print(x, " ungerade", .red)
     }
-    
+
     log("\n--- Array und Schleifen ---", .blue)
     var arr: []f64 = [1.0, 2.0, 3.0, 4.0, 5.0]
     var sum: f64 = 0
